@@ -1,0 +1,3 @@
+useDynLib(shapevol1, .registration=TRUE)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
