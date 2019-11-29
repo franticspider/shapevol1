@@ -1,0 +1,73 @@
+---
+title: 'Evolvable Shape Seeds: Progress at York'
+author: "Simon Hickinbotham"
+date: "4 December 2019"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+
+## Summary
+
+- Algorithm for 'growing' a set of seed genes
+- Strengths and weaknesses
+- Comparision with L-Systems and CPPNs
+- Novelty search
+
+## Target Shape
+
+
+```{r}
+summary(cars)
+```
+
+## Algorithm pseudocode
+
+<small>
+```{r, echo=TRUE, eval = FALSE}
+genetostlfile4 <- function(fn="shape.stl",genes,pos=spos(0,0,0),runlim=1000){
+
+  while (TRUE)
+    posnext <- NULL
+    for(pp in 1:nrow(pos)){
+      
+      shape <- getshape(pos[pp,],genes)
+      domval <- domInZone(pos[pp,],genes)
+      if(domval){
+        
+        dirs <- genes[genes$dom == domval & dirs$valtyp!=0,] # extract domlevel
+        for(dd in 1:nrow(dirs)){
+          direction <- get_direction(dirs)
+          posnext <- addposition(dirs[dd],shape,direction,posnext)
+          drawCStoSTL(pos[pp,],shape,direction)
+    
+    if(is.null(posnext) | iterations++ > runlim)      
+      break
+    
+    pos <- posnext
+```
+</small>
+
+
+## Seed genes
+
+
+
+novelty search as a means of measuring the "expressive power" of an encoding
+
+
+
+## Strengths & Weaknesses
+
+
+- Very flexible *and readable*
+- Compatible with engineering platforms
+
+- Arbitrary start/stop points
+- Not particularly compact
+- X,Y,Z zones are only loosely joined
+
