@@ -1,0 +1,581 @@
+---
+title: "Novelty Search"
+author: "Simon Hickinbotham"
+date: "29/11/2019"
+
+output: 
+  html_document: 
+    number_sections: yes
+  pdf_document: default
+---
+
+# Shape Seeds
+
+## Table shape seed
+
+The seed shape is the "table" described in the file `091111Progress.Rmd`. Here we've just tidied up some of the values and names. The code at the end of this chunk generates the shape from the geneset and gets a list of points from the phenotype:
+
+```{r echo=TRUE, message=FALSE}
+
+require(stringr)
+source("../shapevol1/R/sgene.R")
+source("../shapevol1/R/genetostl.R")
+source("../shapevol1/R/genetostl4.R")
+
+gene01 <- sgene("Cross section","Square",status = T,start=-40,stop=40,dom=1)
+gene02 <- sgene("Length",       5       ,status = T,start=-40,stop=40,dom=1)
+gene03 <- sgene("Diameter",     1       ,status = T,start=-40,stop=40,dom=0)
+group1 <- rbind(gene01,gene02,gene03)
+
+gene04 <- sgene("X_1X",          0,status = T,start=0,stop=1,dom=50)
+gene05 <- sgene("Y_1Y",          0,status = T,start=0,stop=1,dom=50)
+gene06 <- sgene("Z_1Z",          1,status = T,start=0,stop=5,dom=50)
+group2 <- rbind(gene04,gene05,gene06)
+
+#Table top:
+gene07 <- sgene("T1_2X",          1,status = T,start=0,stop=5,dom=48)
+gene08 <- sgene("T2_2Y",          1,status = T,start=0,stop=10,dom=48)
+gene09 <- sgene("T1_2Z",          0,status = T,start=0,stop=15,dom=48)
+
+#y axis leg and end strut 
+gene10 <- sgene("T3_2X",          1,status = T,start=0,stop=1,dom=47)
+gene11 <- sgene("T3_2Y",          0,status = T,start=15,stop=16,dom=47)
+gene12 <- sgene("T3_2Z",          -1,status = T,start=6,stop=10,dom=47)
+
+#x axis leg and end strut
+gene13 <- sgene("T4_2X",          0,status = T,start=10,stop=11,dom=46)
+gene14 <- sgene("T4_2Y",          1,status = T,start=0,stop=4,dom=46)
+gene15 <- sgene("T4_2Z",          -1,status = T,start=6,stop=10,dom=46)
+
+# Table edge along far y axis
+gene16 <- sgene("T5_2X",          0,status = T,start=10,stop=11,dom=45)
+gene17 <- sgene("T5_2Y",          1,status = T,start=4,stop=14,dom=45)
+gene18 <- sgene("T5_2Z",          0,status = T,start=6,stop=10,dom=45)
+
+# Table edge along far x axis
+gene19 <- sgene("T6_2X",          1,status = T,start=5,stop=9,dom=44)
+gene20 <- sgene("T6_2Y",          0,status = T,start=11,stop=15,dom=44)
+gene21 <- sgene("T6_2Z",          0,status = T,start=6,stop=10,dom=44)
+
+# Lower portions of the remaining three legs
+gene22 <- sgene("L3_2X",          0,status = T,start= 0,stop= 100,dom=43)
+gene23 <- sgene("L3_2Y",          0,status = T,start=0,stop=15,dom=43)
+gene24 <- sgene("L3_2Z",          -1,status = T,start= 1,stop=12,dom=43)
+
+group3 <- rbind(gene07,gene08,gene09
+                ,gene10,gene11,gene12
+                ,gene13,gene14,gene15
+                ,gene16,gene17,gene18
+                ,gene19,gene20,gene21
+                ,gene22,gene23,gene24
+                )
+
+geneset <- rbind(group1,group2,group3)
+
+pointset <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00.stl",geneset,pos=spos(0, 0,0),runlim=40)
+```
+
+That makes the table alright. It's nice to generate an STL file with all the steps in for visualisation - let's do that now:
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+  
+fn <- "~/git/cec2020/seedsteps.stl"
+sink(file = fn)
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+
+xpos <- 200
+xs <- -25
+ypos <- -50
+ys <- 3
+geneset <- rbind(group1,group2)
+pointset <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00.stl",geneset,
+                              pos=spos(0, 0,0),runlim=40,offset=c(xpos,ypos,0),solo = F)
+xpos <- xpos + xs
+ypos <- ypos + ys
+geneset <- rbind(geneset,gene07,gene08,gene09)
+pointset <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00.stl",geneset,
+                              pos=spos(0, 0,0),runlim=40,offset=c(xpos,ypos,0),solo = F)
+xpos <- xpos + xs
+ypos <- ypos + ys
+geneset <- rbind(geneset,gene10,gene11,gene12)
+pointset <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00.stl",geneset,
+                              pos=spos(0, 0,0),runlim=40,offset=c(xpos,ypos,0),solo = F)
+xpos <- xpos + xs
+ypos <- ypos + ys
+geneset <- rbind(geneset,gene13,gene14,gene15)
+pointset <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00.stl",geneset,
+                              pos=spos(0, 0,0),runlim=40,offset=c(xpos,ypos,0),solo = F)
+xpos <- xpos + xs
+ypos <- ypos + ys
+geneset <- rbind(geneset,gene16,gene17,gene18)
+pointset <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00.stl",geneset,
+                              pos=spos(0, 0,0),runlim=40,offset=c(xpos,ypos,0),solo = F)
+xpos <- xpos + xs
+ypos <- ypos + ys
+geneset <- rbind(geneset,gene19,gene20,gene21)
+pointset <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00.stl",geneset,
+                              pos=spos(0, 0,0),runlim=40,offset=c(xpos,ypos,0),solo = F)
+xpos <- xpos + xs
+ypos <- ypos + ys
+geneset <- rbind(geneset,gene22,gene23,gene24)
+pointset <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00.stl",geneset,
+                              pos=spos(0, 0,0),runlim=40,offset=c(xpos,ypos,0),solo = F)
+
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+sink()
+
+
+```
+
+
+
+## Shape 2 - a 'manual' mutation of Shape1
+
+This shape is interesting because it raised the need to include *all* the 'already seen' positions in the 'addpos' functions. This is becuase each 'nextpos' structure didn't contain duplicates, but over several iterations, positions were revisited many times - indicating a 'loop' of positions that can only be detected if we use the 'seenpos' structure to record every position that has already been processed. If we don't do this, we end up hitting the iteration limit, and the full shape isn't produced. 
+
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+
+gene01 <- sgene("Cross section","Square",status = T,start=-40,stop=40,dom=1)
+gene02 <- sgene("Length",       5       ,status = T,start=-40,stop=40,dom=1)
+gene03 <- sgene("Diameter",     0.5       ,status = T,start=-40,stop=40,dom=0)
+group1 <- rbind(gene01,gene02,gene03)
+
+gene04 <- sgene("X_1X",          0,status = T,start=0,stop=1,dom=50)
+gene05 <- sgene("Y_1Y",          0,status = T,start=0,stop=1,dom=50)
+gene06 <- sgene("Z_1Z",          1,status = T,start=0,stop=5,dom=50)
+group2 <- rbind(gene04,gene05,gene06)
+
+#Table top:
+gene16 <- sgene("T1_2X",          1,status = T,start=0,stop=5,dom=48)
+gene17 <- sgene("T2_2Y",          1,status = T,start=0,stop=10,dom=48)
+gene18 <- sgene("T1_2Z",          0,status = T,start=0,stop=15,dom=48)
+
+#y axis leg and end strut 
+gene19 <- sgene("T3_2X",          1,status = T,start=0,stop=1,dom=47)
+gene20 <- sgene("T3_2Y",          0,status = T,start=15,stop=16,dom=47)
+gene21 <- sgene("T3_2Z",          -1,status = T,start=6,stop=10,dom=47)
+
+#x axis
+gene22 <- sgene("T4_2X",          1,status = T,start=10,stop=11,dom=46)
+gene23 <- sgene("T4_2Y",          1,status = T,start=0,stop=4,dom=46)
+gene24 <- sgene("T4_2Z",          -1,status = T,start=6,stop=10,dom=46)
+
+
+gene25 <- sgene("T5_2X",          0,status = T,start=0,stop=20,dom=45)
+gene26 <- sgene("T5_2Y",          1,status = T,start=-4,stop=20,dom=45)
+gene27 <- sgene("T5_2Z",          1,status = T,start=-6,stop=20,dom=45)
+
+gene28 <- sgene("T6_2X",          1,status = T,start=5,stop=9,dom=44)
+gene29 <- sgene("T6_2Y",          0,status = T,start=11,stop=15,dom=44)
+gene30 <- sgene("T6_2Z",          0,status = T,start=6,stop=10,dom=44)
+
+gene31 <- sgene("L3_2X",          0,status = T,start= 0,stop= 100,dom=43)
+gene32 <- sgene("L3_2Y",          0,status = T,start=0,stop=15,dom=43)
+gene33 <- sgene("L3_2Z",          -1,status = T,start= 1,stop=12,dom=43)
+
+gene34 <- sgene("L4_2X",          1,status = T,start= 10,stop= 11,dom=51)
+gene35 <- sgene("L4_2Y",          0,status = T,start=15,stop=16,dom=51)
+gene36 <- sgene("L4_2Z",          -1,status = T,start= 1,stop=10,dom=51)
+
+#Legs:
+group3 <- rbind(gene16,gene17,gene18
+                ,gene19,gene20,gene21
+                ,gene22,gene23,gene24
+                ,gene25,gene26,gene27
+                ,gene28,gene29,gene30
+                ,gene31,gene32,gene33
+                ,gene34,gene35,gene36
+                )
+
+
+genesetm <- rbind(group1,group2,group3)
+
+require(stringr)
+source("../shapevol1/R/sgene.R")
+source("../shapevol1/R/genetostl.R")
+source("../shapevol1/R/genetostl4.R")
+pointsetm <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00_mutant1.stl",genesetm,pos=spos(0, 0,0),offset = c(10,10,10),runlim=40)
+```
+
+
+# Building the Novelty search
+
+OK - so for novelty search, we need to do two things:
+
+1. Get some novelty metrics from the pointset
+2. Get a distance measure from the novelty metrics
+2. Mutate the genes. 
+
+We can then begin to measure the novelty as the genes mutate. Let's start by getting some simple stats out of the positions for the novelty metrics:
+
+- X,Y,Z range
+- X,Y,Z mean
+- Num iterations
+- Num positions
+
+We have a function called `getNSvals` that does this for a pointset:
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+source("../shapevol1/R/nsvals.R")
+nspos <- getNSvals(pointset)
+```
+
+## Mutation function
+
+OK, let's write some functions to help us generate a bunch of mutants from the original table:
+
+*TODO: these should be in the R package*
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+
+getrowno <- function(gno,xyzno){
+  rno <- (3*gno)+xyzno
+  return (rno)
+}
+source("../shapevol1/R/domut.R")
+
+mutate.gene <- function(geneset,verbose=F){
+
+  #select a genegroup for direction:
+  gno <- sample(((nrow(geneset)/3)-1), 1)
+  xyzno <- sample(3,1)-1
+  
+  #pick a mutant type
+  mtype <- sample(4,1)
+  
+  mdir <- sample(2,1)
+  
+  geneset <- domut(gno,xyzno,mtype,mdir,geneset,verbose)
+  
+  return (geneset)
+
+}
+
+
+NSdist <- function(v1,v2){
+  dist <- 0
+  for(vv in 1:ncol(v1)){
+    dist <- dist + ((v1[1,vv]-v2[1,vv])*(v1[1,vv]-v2[1,vv]))
+  }
+  
+  dist <- sqrt(dist)
+  return(dist)
+  
+}
+```
+
+
+A crude test of the above functions yields: 
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+gpop <- list()
+ppop <- list()
+npop <- list()
+dpop <- list()
+
+geneset.points <- genetostlfile4   (sprintf("~/Desktop/stl/pop00.stl"),geneset,pos=spos(0, 0,0),runlim=100)
+geneset.ns <- getNSvals(geneset.points)
+geneset.dist <- 0
+
+for(gg in 1:25){
+  gpop[[gg]] <- mutate.gene(geneset)
+  ppop[[gg]] <- genetostlfile4   (sprintf("~/Desktop/stl/pop%02d.stl",gg),gpop[[gg]],pos=spos(0, 0,0),runlim=100)
+  npop[[gg]] <- getNSvals(ppop[[gg]])
+  dpop[[gg]] <- NSdist(npop[[1]],npop[[gg]])
+}
+```
+
+## Testing individual mutations
+
+OK, this is now giving us an initial population to work with, so we can look around, but we have a bug to deal with - let's brute force the mutations to find out where it happens, and make sure we can load *all* the mutants into one file:
+
+*(NB! This has strange effects when knitting to a document due to the `sink` function... to get results you have to use CTRL + ENTER on the code block..)*
+
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+glim <- 7
+xlim <- 3
+mlim <- 4
+
+source("../shapevol1/R/genetostl.R")
+source("../shapevol1/R/genetostl4.R")
+
+fn <- "mutatedShapes1.stl"  
+sink(file = fn)
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+
+for(gg in 1:glim){
+  for(xx in 1:xlim){
+    message(sprintf("rowno = %d gg = %d, xx = %d",getrowno(gg,xx),gg,xx))
+    for(mm in 1:mlim){
+      g2 <- domut(gg,xx,mm,sample(2,1),geneset,verbose=F)
+      pv <- genetostlfile4(fn, g2,offset=c((gg-(glim/2))*30,(xx-(xlim/2))*30,(mm-(mlim/2))*30),verbose = F, runlim = 50,solo=F)
+    }
+  }
+}
+
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+sink()
+```
+
+OK, that now works nicely so we can put it together into an algorithm. First though, it might be a good idea to see how far 100 random mutations might take us - an alternative view of the 'mutation space'. 
+
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+glim <- 7
+xlim <- 3
+mlim <- 4
+
+source("../shapevol1/R/genetostl.R")
+source("../shapevol1/R/genetostl4.R")
+
+fn <- "shapes100mutns.stl"  
+sink(file = fn)
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+
+#for(gg in 1:glim){
+#  for(xx in 1:xlim){
+#    message(sprintf("rowno = %d gg = %d, xx = %d",getrowno(gg,xx),gg,xx))
+#    for(mm in 1:mlim){
+  
+pv<-list()    
+
+xpos <- -250
+ypos <- -250
+for(nn in 1:100){
+  message(sprintf("Mutating sample %d 100 times",nn))
+  g2 <- geneset
+  for(mm in 1:100){
+    g2 <- domut(sample(glim,1),sample(xlim,1),sample(mlim,1),sample(2,1),g2,verbose=F)
+  }
+  pv[[nn]] <- genetostlfile4(fn, g2,offset=c(xpos,ypos,0),verbose = F, runlim = 100,solo=F)
+  xpos<-xpos + 50
+  if(xpos > 200){
+    xpos <- -250
+    ypos <- ypos + 50 
+  }
+}
+
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+sink()
+```
+
+
+OK Now we want to get the Novelty Search vectors for each of these shapes: 
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+nsv <- data.frame(xmean=double(),ymean=double(),zmean=double(),xrange=integer(),yrange=integer(),zrange=integer(),nits=integer(),npos=integer())
+for(nn in 1:100)
+  nsv[nn,]<-getNSvals(pv[[nn]])
+
+boxplot(nsv$xmean,nsv$ymean,nsv$zmean,nsv$xrange,nsv$yrange,nsv$zrange,nsv$nits,nsv$npos,ylim=c(0,50))
+```
+
+# Population to stl file 
+
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+pop.to.stl <- function(fn = "population.stl",  glist){
+
+  sink(file = fn)
+  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  xpos <- -225
+  ypos <- -225
+  for(pp in 1:length(glist)){
+    ppop <- genetostlfile4   (sprintf("tmp.stl"),glist[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+    xpos<-xpos + 50
+    if(xpos == 275){
+      xpos <- -225
+      ypos <- ypos + 50 
+    }
+  }
+  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  sink()
+}
+```
+
+
+# Algorithm 1
+
+*simple attempt to get some evolution going and explore the issues*
+
+- Create empty list of 'seen' states
+- Add 'table' to this list
+- Generate population by mutating the table
+- while not finished:
+  - use metrics on the population to rank distance from 'seen' states
+  - replace bottom $m$ shapes in the ranking with mutants of the top $m$ shapes
+  - if distance $d>D$, the minimum distance for a new state to be seen, add that to the 'seen' states
+
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+
+#reload all the functions!
+source("../shapevol1/R/domut.R")
+
+
+#set the random number seed for repeatable results
+set.seed(436)
+
+# Create an empty list of seen states
+nseen <- 0
+seen <- list()
+seenNS <- list()
+popsize <- 25
+
+gpop <- list()
+ppop <- list()
+npop <- list()
+dpop <- list()
+
+# Add 'table' to this list
+seen[[1]] <- geneset
+seenNS[[1]] <- getNSvals(genetostlfile4("geneset.stl",geneset))
+  
+nseen <- nseen + 1
+    # message(sprintf("length of seenNS is %d",length(seenNS)))
+    # for(sl in 1:length(seenNS)){
+    #   dist <-  NSdist(seenNS[[sl]],npop[[ mut ]])
+    #   dpop[[  mut  ]] <- min(dpop[[mut]], dist)
+    #   message(sprintf("dpop[[mut]] = %f, dist = %f",dpop[[mut]],dist))
+    # }
+
+
+
+fn <- "gen1.stl"  
+sink(file = fn)
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+xpos <- -100
+ypos <- -100
+for(pp in 1:popsize){
+  gpop[[pp]] <- mutate.gene(geneset)
+  ppop[[pp]] <- genetostlfile4   (sprintf("tmp.stl"),gpop[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+  npop[[pp]] <- getNSvals(ppop[[pp]])
+  dpop[[pp]] <- NSdist(npop[[1]],npop[[pp]])
+  xpos<-xpos + 50
+  if(xpos == 150){
+    xpos <- -100
+    ypos <- ypos + 50 
+  }
+}
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+sink()
+
+nmuts <- 5
+distthreshold <- 10
+ngen <- 100
+
+for(iterations in 1:ngen){
+  message(sprintf("\n\nITERATION %d",iterations))
+  
+  #TODO: we should only do this if new seen states have been added 
+  #update *all* the scores
+  for(gg in 1:length(gpop)){
+    dpop[[ gg ]] <- NSdist(seenNS[[1]],npop[[ gg ]])
+    if(length(seenNS)>1){
+      for(ss in 2:length(seenNS)){
+        dist <-  NSdist(seenNS[[ss]],npop[[ gg ]])
+        dpop[[  gg  ]] <- min(dpop[[gg]], dist)
+        
+      }
+    }
+  }
+  
+
+  #Generate the mutants and update the scores: 
+  myorder <- order(as.data.frame(dpop))
+  for(mm in 1:nmuts){
+    mut <- myorder[mm]
+    msrc <-  myorder[mm+(popsize-nmuts)] 
+    message(sprintf("Mutating gene %d with dpop score of %f into gene %d with dpop score of %f",
+                    msrc,dpop[[msrc]],mut,dpop[[mut]]))
+    gpop[[  mut  ]]   <- mutate.gene(gpop[[ msrc ]])
+    ppop[[  mut  ]] <- genetostlfile4   (sprintf("~/Desktop/stl/gen%dpop%02d.stl",iterations,mut),
+                                         gpop[[  mut  ]],pos=spos(0, 0,0),runlim=100)
+    npop[[  mut  ]] <- getNSvals(ppop[[  mut  ]])
+    
+    # Get the lowest distance score for this mutant: 
+    dpop[[ mut ]] <-  NSdist(seenNS[[1]],npop[[ mut ]])
+    # message(sprintf("length of seenNS is %d",length(seenNS)))
+    # for(sl in 1:length(seenNS)){
+    #   dist <-  NSdist(seenNS[[sl]],npop[[ mut ]])
+    #   dpop[[  mut  ]] <- min(dpop[[mut]], dist)
+    #   message(sprintf("dpop[[mut]] = %f, dist = %f",dpop[[mut]],dist))
+    # }
+    
+    message(sprintf("dpop[[%d]] is now %f",mut,dpop[[mut]]))
+    
+  }
+  
+  #Add high-scoring genesets to the list of seen shapes 
+  seenlen <- length(seen)
+  #for(dd in 1:popsize){
+  
+  
+  # #Only add one geneset per generation, and only if it's above D
+  # # reason: if we added more then one, we'd have to recalculate *all* distances for each new entry in the seen list...
+  # myorder <- order(as.data.frame(dpop))
+  # maxd <- myorder[length(dpop)]
+  # if(dpop[[ maxd ]] > distthreshold){
+  #   seenlen <- seenlen + 1
+  #   seen[[seenlen]] <- gpop[[maxd]]
+  #   seenNS[[seenlen]] <- getNSvals(genetostlfile4("geneset.stl",seen[[seenlen]]))
+  #   message(sprintf("Added gene %d from pop with dist of %f, seenlen now %d",dd,dpop[[maxd]],seenlen))
+  # }
+  
+  pop.to.stl(sprintf("seen%02d.stl",iterations),seen)
+  pop.to.stl(sprintf("gpop%02d.stl",iterations),gpop)
+}
+
+
+```
+
+
+We need a function to view the outputs:
+
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE, paged.print=FALSE}
+
+pop.to.stl("gpop.stl",gpop)
+pop.to.stl("seen.stl",seen)
+
+```
+
+
+
+## Evaluation
+
+OK, so the problem with the output of this as it stans is that 
+
+
+
+
+Ways we might vary this:
+
+- Use a 'target' shape as the distance measure - to see if we can mutate between shapes - is the grammar flexible enough?
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -42,7 +42,7 @@ rotvert <- function(vert,dir="X"){
 }
 
 
-drawCStoSTL <- function(inpos,cs,len,dia,dir="Z",verbose = T){
+drawCStoSTL <- function(inpos,cs,len,dia,dir="Z",offset=c(0,0,0),verbose = T){
   
   if(is.data.frame(inpos)){
     if(nrow(inpos) != 1){
@@ -50,7 +50,7 @@ drawCStoSTL <- function(inpos,cs,len,dia,dir="Z",verbose = T){
       return()
     }
     else{
-      message(sprintf("inside drawCStoSTL Setting pos to %0.0f,%0.0f,%0.0f",inpos$X[1],inpos$Y[1],inpos$Z[1]))
+      if(verbose)message(sprintf("inside drawCStoSTL Setting pos to %0.0f,%0.0f,%0.0f",inpos$X[1],inpos$Y[1],inpos$Z[1]))
       cat(sprintf("#inside drawCStoSTL Setting pos to %0.0f,%0.0f,%0.0f\n",inpos$X[1],inpos$Y[1],inpos$Z[1]))
       pos <- c(inpos$X[1],inpos$Y[1],inpos$Z[1])
       cat(sprintf("#inside drawCStoSTL pos is now %0.0f,%0.0f,%0.0f; len is %0.0f; dia is %0.0f\n",pos[1],pos[2],pos[3],len,dia))
@@ -64,87 +64,87 @@ drawCStoSTL <- function(inpos,cs,len,dia,dir="Z",verbose = T){
         
         #Bottom face 1
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c(-dia, dia,  0),dir)))  
-        cat(printvertex(pos + rotvert(c( dia, dia,  0),dir)))
-        cat(printvertex(pos + rotvert(c( dia,-dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,  0),dir)))  
+        cat(printvertex(pos + offset + rotvert(c( dia, dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,  0),dir)))
         cat("endloop\nendfacet\n")    
         #Bottom face 1
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c( dia,-dia,  0),dir)))  
-        cat(printvertex(pos + rotvert(c(-dia,-dia,  0),dir)))
-        cat(printvertex(pos + rotvert(c(-dia, dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,  0),dir)))  
+        cat(printvertex(pos + offset + rotvert(c(-dia,-dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,  0),dir)))
         cat("endloop\nendfacet\n")    
     
     
         #Face 1 Lower left triangle
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c(-dia, dia,  0),dir)))  
-        cat(printvertex(pos + rotvert(c( dia, dia,  0),dir)))
-        cat(printvertex(pos + rotvert(c(-dia, dia,len),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,  0),dir)))  
+        cat(printvertex(pos + offset + rotvert(c( dia, dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,len),dir)))
         cat("endloop\nendfacet\n")    
         
         #upper right triangle
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c(-dia, dia,len),dir)))  
-        cat(printvertex(pos + rotvert(c( dia, dia,len),dir)))
-        cat(printvertex(pos + rotvert(c( dia, dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,len),dir)))  
+        cat(printvertex(pos + offset + rotvert(c( dia, dia,len),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia, dia,  0),dir)))
         cat("endloop\nendfacet\n")    
         
         #Face 2 Lower left triangle
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c( dia,-dia,  0),dir)))  
-        cat(printvertex(pos + rotvert(c( dia, dia,  0),dir)))
-        cat(printvertex(pos + rotvert(c( dia,-dia,len),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,  0),dir)))  
+        cat(printvertex(pos + offset + rotvert(c( dia, dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,len),dir)))
         cat("endloop\nendfacet\n")    
         
         #upper right triangle
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c( dia,-dia,len),dir)))  
-        cat(printvertex(pos + rotvert(c( dia, dia,len),dir)))
-        cat(printvertex(pos + rotvert(c( dia, dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,len),dir)))  
+        cat(printvertex(pos + offset + rotvert(c( dia, dia,len),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia, dia,  0),dir)))
         cat("endloop\nendfacet\n")    
         
         #Face 3 Lower left triangle
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c(-dia,-dia,  0),dir)))  
-        cat(printvertex(pos + rotvert(c( dia,-dia,  0),dir)))
-        cat(printvertex(pos + rotvert(c(-dia,-dia,len),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia,-dia,  0),dir)))  
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia,-dia,len),dir)))
         cat("endloop\nendfacet\n")    
         
         #upper right triangle
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c(-dia,-dia,len),dir)))  
-        cat(printvertex(pos + rotvert(c( dia,-dia,len),dir)))
-        cat(printvertex(pos + rotvert(c( dia,-dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia,-dia,len),dir)))  
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,len),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,  0),dir)))
         cat("endloop\nendfacet\n")    
         
   
         #Face 4 Lower left triangle
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c(-dia,-dia,  0),dir)))  
-        cat(printvertex(pos + rotvert(c(-dia, dia,  0),dir)))
-        cat(printvertex(pos + rotvert(c(-dia,-dia,len),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia,-dia,  0),dir)))  
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia,-dia,len),dir)))
         cat("endloop\nendfacet\n")    
         
         #upper right triangle
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c(-dia,-dia,len),dir)))  
-        cat(printvertex(pos + rotvert(c(-dia, dia,len),dir)))
-        cat(printvertex(pos + rotvert(c(-dia, dia,  0),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia,-dia,len),dir)))  
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,len),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,  0),dir)))
         cat("endloop\nendfacet\n")    
         
         
         #Top face 1
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c(-dia, dia,  len),dir)))  
-        cat(printvertex(pos + rotvert(c( dia, dia,  len),dir)))
-        cat(printvertex(pos + rotvert(c( dia,-dia,  len),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,  len),dir)))  
+        cat(printvertex(pos + offset + rotvert(c( dia, dia,  len),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,  len),dir)))
         cat("endloop\nendfacet\n")    
         #Top face 2
         cat("facet normal 0 0 0\nouter loop\n")
-        cat(printvertex(pos + rotvert(c( dia,-dia,  len),dir)))  
-        cat(printvertex(pos + rotvert(c(-dia,-dia,  len),dir)))
-        cat(printvertex(pos + rotvert(c(-dia, dia,  len),dir)))
+        cat(printvertex(pos + offset + rotvert(c( dia,-dia,  len),dir)))  
+        cat(printvertex(pos + offset + rotvert(c(-dia,-dia,  len),dir)))
+        cat(printvertex(pos + offset + rotvert(c(-dia, dia,  len),dir)))
         cat("endloop\nendfacet\n")    
         
     return()  

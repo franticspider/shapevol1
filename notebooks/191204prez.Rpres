@@ -183,12 +183,19 @@ L-Systems approach
 - A *shape grammar*
 - Start with a shape $S$
 - Then have a set of production rules: $S \rightarrow ETE$
+- Allows recursion easily: $X \rightarrow XY$
+- position is *relative* - hard to incoportate spatial constraints? 
 
 
 
 
 CPPN approach
 ====
+
+- 
+
+
+
 
 
 

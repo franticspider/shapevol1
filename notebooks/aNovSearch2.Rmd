@@ -1,0 +1,637 @@
+---
+title: "Novelty Search"
+author: "Simon Hickinbotham"
+date: "29/11/2019"
+
+output: 
+  html_document: 
+    number_sections: yes
+  pdf_document: default
+---
+
+OK, let's build on the file `aNovSearch1.Rmd` and make an evolutionary algorithm. We have most of the components to do this now. I'll try to make this as standalone as I can. 
+
+# Seed genome: 
+
+
+## Table shape seed
+
+The seed shape is the "table" described in the file `091111Progress.Rmd`. Here we've just tidied up some of the values and names. The code at the end of this chunk generates the shape from the geneset and gets a list of points from the phenotype:
+
+```{r echo=TRUE, message=FALSE}
+
+require(stringr)
+source("../shapevol1/R/sgene.R")
+source("../shapevol1/R/genetostl.R")
+source("../shapevol1/R/genetostl4.R")
+
+gene01 <- sgene("Cross section","Square",status = T,start=-40,stop=40,dom=1)
+gene02 <- sgene("Length",       5       ,status = T,start=-40,stop=40,dom=1)
+gene03 <- sgene("Diameter",     1       ,status = T,start=-40,stop=40,dom=0)
+group1 <- rbind(gene01,gene02,gene03)
+
+gene04 <- sgene("X_1X",          0,status = T,start=0,stop=1,dom=50)
+gene05 <- sgene("Y_1Y",          0,status = T,start=0,stop=1,dom=50)
+gene06 <- sgene("Z_1Z",          1,status = T,start=0,stop=5,dom=50)
+group2 <- rbind(gene04,gene05,gene06)
+
+#Table top:
+gene07 <- sgene("T1_2X",          1,status = T,start=0,stop=5,dom=48)
+gene08 <- sgene("T2_2Y",          1,status = T,start=0,stop=10,dom=48)
+gene09 <- sgene("T1_2Z",          0,status = T,start=0,stop=15,dom=48)
+
+#y axis leg and end strut 
+gene10 <- sgene("T3_2X",          1,status = T,start=0,stop=1,dom=47)
+gene11 <- sgene("T3_2Y",          0,status = T,start=15,stop=16,dom=47)
+gene12 <- sgene("T3_2Z",          -1,status = T,start=6,stop=10,dom=47)
+
+#x axis leg and end strut
+gene13 <- sgene("T4_2X",          0,status = T,start=10,stop=11,dom=46)
+gene14 <- sgene("T4_2Y",          1,status = T,start=0,stop=4,dom=46)
+gene15 <- sgene("T4_2Z",          -1,status = T,start=6,stop=10,dom=46)
+
+# Table edge along far y axis
+gene16 <- sgene("T5_2X",          0,status = T,start=10,stop=11,dom=45)
+gene17 <- sgene("T5_2Y",          1,status = T,start=4,stop=14,dom=45)
+gene18 <- sgene("T5_2Z",          0,status = T,start=6,stop=10,dom=45)
+
+# Table edge along far x axis
+gene19 <- sgene("T6_2X",          1,status = T,start=5,stop=9,dom=44)
+gene20 <- sgene("T6_2Y",          0,status = T,start=11,stop=15,dom=44)
+gene21 <- sgene("T6_2Z",          0,status = T,start=6,stop=10,dom=44)
+
+# Lower portions of the remaining three legs
+gene22 <- sgene("L3_2X",          0,status = T,start= 0,stop= 30,dom=43)
+gene23 <- sgene("L3_2Y",          0,status = T,start=0,stop=15,dom=43)
+gene24 <- sgene("L3_2Z",          -1,status = T,start= 1,stop=12,dom=43)
+
+group3 <- rbind(gene07,gene08,gene09
+                ,gene10,gene11,gene12
+                ,gene13,gene14,gene15
+                ,gene16,gene17,gene18
+                ,gene19,gene20,gene21
+                ,gene22,gene23,gene24
+                )
+
+geneset <- rbind(group1,group2,group3)
+
+pointset <- genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00.stl",geneset,pos=spos(0, 0,0),runlim=40)
+```
+
+# Seed population
+
+Now we need to create a population of variants on this seed to get started. 
+
+```{r}
+
+meankdist <- function(npop,idx,kk=15){
+  
+  NN <- length(npop)
+  
+  dist <- vector(length = NN)
+  for(pp in 1:NN){
+    if(pp!=idx){
+      dist[pp] <- NSdist(npop[[idx]],npop[[pp]]) 
+    }
+    else
+      dist[pp] <- 0
+  }
+  #sort the list - decreasing is FALSE because we want the k *nearest* neighbours
+  dist <- sort(dist,decreasing = F)
+  
+  #return the mean of the top kk
+  return(mean(dist[1:kk]))
+}
+
+
+
+
+
+require(shapevol1)
+
+#set the random number seed for repeatable results
+set.seed(436)
+
+#Set the populaiton size (Gomes has 200 but we'll start with 30)
+popsize <- 30
+gpop <- list()
+ppop <- list()
+npop <- list()
+dpop <- vector(length = popsize)
+
+fn <- "gen1.stl"  
+sink(file = fn)
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+xpos <- -100
+ypos <- -100
+for(pp in 1:popsize){
+  gpop[[pp]] <- mutate.gene(geneset)
+  ppop[[pp]] <- genetostlfile4   (sprintf("tmp.stl"),gpop[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+  npop[[pp]] <- getNSvals(ppop[[pp]])
+  xpos<-xpos + 50
+  if(xpos == 150){
+    xpos <- -100
+    ypos <- ypos + 50 
+  }
+}
+
+#We need all the NSvals before we can do the dist thing
+for(pp in 1:popsize){
+  dpop[pp] <- meankdist(npop,pp)  #NSdist(npop[[1]],npop[[pp]])
+}
+
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+sink()
+```
+
+
+    
+# Selection 
+
+OK, now we can pick the next generation. We have an elite of 5, so we'll copy those to the next generation first: 
+
+```{r}
+elite <- 5
+rank <- order(dpop,decreasing = T)
+nextgen <- list()
+
+for(ee in 1:elite){
+  nextgen[[ee]] <- gpop[[rank[ee]]]
+}
+
+for(pp in (elite+1):popsize){
+  tourney <- sample(popsize,2)
+  
+  winner <- tourney[1]
+  if(dpop[tourney[1]] < dpop[tourney[2]] )
+    winner <- tourney[2]
+  
+  nextgen[[pp]] <- mutate.gene(gpop[[winner]])
+
+}
+
+```
+
+Let's see what that looks like by expressing the new set of genes: 
+
+```{r}
+fn <- "gen2.stl"  
+sink(file = fn)
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+xpos <- -100
+ypos <- -100
+for(pp in 1:popsize){
+  gpop[[pp]] <- nextgen[[pp]]
+  ppop[[pp]] <- genetostlfile4   (sprintf("tmp.stl"),gpop[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+  xpos<-xpos + 50
+  if(xpos == 150){
+    xpos <- -100
+    ypos <- ypos + 50 
+  }
+}
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+sink()
+```
+
+OK - that makes reasonable sense! We now have sufficient to put it all into an algorithm: 
+
+# Algorithm
+
+
+```{r}
+
+source("../shapevol1/R/domut.R")
+require(stringr)
+
+# Initialize population
+popsize <- 100
+elite <- 5
+poslim <- 350
+ngen <- 100
+
+set.seed(436)
+gpop <- list()
+ppop <- list()
+npop <- list()
+
+
+dhits <- matrix(nrow=popsize,ncol=ngen)
+
+dp <- genetostlfile4   (sprintf("tmp.stl"),geneset,pos=spos(0, 0,0),offset=c(0,0,0),runlim=100,solo=T)
+NSseed <- getNSvals(dp)
+#Get the 'seed' nsvals:
+
+
+
+
+fn <- "gen001.stl"  
+sink(file = fn)
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+xpos <- -poslim
+ypos <- -poslim
+for(pp in 1:popsize){
+  gpop[[pp]] <- mutate.gene(geneset)
+  ppop[[pp]] <- genetostlfile4   (sprintf("tmp.stl"),gpop[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+  xpos<-xpos + 50
+  if(xpos == poslim){
+    xpos <- -poslim
+    ypos <- ypos + 50 
+  }
+}
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+sink()
+
+
+# Iterate
+for(nn in 1:ngen){
+  for(pp in 1:popsize){
+    npop[[pp]] <- getNSvals(ppop[[pp]])
+  }
+  for(pp in 1:popsize){
+    dpop[pp] <- meankdist(npop,pp)  #NSdist(npop[[1]],npop[[pp]])
+  } 
+  
+  #Get distance to NSseed and store in dhits
+  dhits[pp,] <- 0
+  for(pp in 1:popsize){
+    #dhits[nn] = dhits[nn] + NSdist(NSseed,npop[[pp]])
+    dhits[pp,nn] <- NSdist(NSseed,npop[[pp]])
+  }
+ 
+  rank <- order(dpop,decreasing = T)
+  nextgen <- list()
+  
+  for(ee in 1:elite){
+    nextgen[[ee]] <- gpop[[rank[ee]]]
+  }
+  
+  for(pp in (elite+1):popsize){
+    tourney <- sample(popsize,2)
+    
+    winner <- tourney[1]
+    if(dpop[tourney[1]] < dpop[tourney[2]] )
+      winner <- tourney[2]
+    
+    nextgen[[pp]] <- mutate.gene(gpop[[winner]])
+  } 
+  
+  gpop <- nextgen
+  
+  fn <- sprintf("gen%03d.stl",nn)  
+  sink(file = fn)
+  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  xpos <- -poslim
+  ypos <- -poslim
+  for(pp in 1:popsize){
+    ppop[[pp]] <- genetostlfile4   ("tmp.stl",gpop[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+    xpos<-xpos + 50
+    if(xpos == poslim){
+      xpos <- -poslim
+      ypos <- ypos + 50 
+    }
+  }
+  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  sink()
+
+}
+
+vanilladhits <- dhits
+
+```
+
+
+Let's have a look at the outputs of these now 
+
+```{r}
+ndf <- do.call(rbind.data.frame,npop)
+
+```
+
+
+# Archive version
+
+We are going to add the 2 most novel individuals to the 
+
+```{r}
+
+source("../shapevol1/R/domut.R")
+require(stringr)
+
+# Initialize population
+popsize <- 100
+elite <- 5
+lambda <- 2
+poslim <- 350
+ngen <- 100
+
+set.seed(437)
+gpop <- list()
+ppop <- list()
+npop <- list()
+
+archive <- list()
+alen <- 1
+
+fn <- "gen001.stl"  
+sink(file = fn)
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+xpos <- -poslim
+ypos <- -poslim
+for(pp in 1:popsize){
+  gpop[[pp]] <- mutate.gene(geneset)
+  ppop[[pp]] <- genetostlfile4   (sprintf("tmp.stl"),gpop[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+  xpos<-xpos + 50
+  if(xpos == poslim){
+    xpos <- -poslim
+    ypos <- ypos + 50 
+  }
+}
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+sink()
+
+
+dhits <- matrix(nrow=popsize,ncol=ngen)
+
+# Iterate
+for(nn in 1:ngen){
+  for(pp in 1:popsize){
+    npop[[pp]] <- getNSvals(ppop[[pp]])
+  }
+  for(pp in 1:popsize){
+    dpop[pp] <- meankdist(c(npop,archive),pp)  #NSdist(npop[[1]],npop[[pp]])
+  } 
+  
+  #Get distance to NSseed and store in dhits
+  dhits[pp,] <- 0
+  for(pp in 1:popsize){
+    #dhits[nn] = dhits[nn] + NSdist(NSseed,npop[[pp]])
+    dhits[pp,nn] <- NSdist(NSseed,npop[[pp]])
+  }
+  #dhits[nn] = dhits[nn] / 100
+ 
+  rank <- order(dpop,decreasing = T)
+  nextgen <- list()
+  
+  for(ee in 1:elite){
+    nextgen[[ee]] <- gpop[[rank[ee]]]
+  }
+  
+  #we only need to keep an archive of the NS values - not the genome...
+  for(aa in 1:lambda){
+    archive[[alen]] <- npop[[rank[aa]]]
+    alen <- alen + 1
+  }
+  
+  for(pp in (elite+1):popsize){
+    tourney <- sample(popsize,2)
+    
+    winner <- tourney[1]
+    if(dpop[tourney[1]] < dpop[tourney[2]] )
+      winner <- tourney[2]
+    
+    nextgen[[pp]] <- mutate.gene(gpop[[winner]])
+  } 
+  
+  gpop <- nextgen
+  
+  fn <- sprintf("archgen%03d.stl",nn)  
+  sink(file = fn)
+  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  xpos <- -poslim
+  ypos <- -poslim
+  for(pp in 1:popsize){
+    ppop[[pp]] <- genetostlfile4   ("tmp.stl",gpop[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+    xpos<-xpos + 50
+    if(xpos == poslim){
+      xpos <- -poslim
+      ypos <- ypos + 50 
+    }
+  }
+  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  sink()
+
+}
+
+archivedhits <- dhits
+```
+
+
+
+
+
+
+
+
+
+# Control (random walk mutation)
+...as above but just doing random walk - to act as a base for the rest. 
+
+```{r}
+
+source("../shapevol1/R/domut.R")
+require(stringr)
+
+# Initialize population
+popsize <- 100
+elite <- 5
+poslim <- 350
+ngen <- 100
+
+
+set.seed(437)
+
+fn <- "gen001.stl"  
+sink(file = fn)
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+xpos <- -poslim
+ypos <- -poslim
+for(pp in 1:popsize){
+  gpop[[pp]] <- mutate.gene(geneset)
+  ppop[[pp]] <- genetostlfile4   (sprintf("tmp.stl"),gpop[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+  xpos<-xpos + 50
+  if(xpos == poslim){
+    xpos <- -poslim
+    ypos <- ypos + 50 
+  }
+}
+cat("solid Exported from Blender-2.80 (sub 75)\n")
+sink()
+
+
+# Iterate
+for(nn in 1:ngen){
+  for(pp in 1:popsize){
+    npop[[pp]] <- getNSvals(ppop[[pp]])
+  }
+  for(pp in 1:popsize){
+    dpop[pp] <- meankdist(npop,pp)  #NSdist(npop[[1]],npop[[pp]])
+  } 
+  
+  #Get distance to NSseed and store in dhits
+  dhits[nn] <- 0
+  for(pp in 1:popsize){
+    dhits[nn] = dhits[nn] + NSdist(NSseed,npop[[pp]])
+  }
+  dhits[nn] = dhits[nn] / 100
+ 
+  
+  for(pp in 1:popsize){
+    
+    nextgen[[pp]] <- mutate.gene(gpop[[pp]])
+  } 
+  
+  gpop <- nextgen
+  
+  fn <- sprintf("rwgen%03d.stl",nn)  
+  sink(file = fn)
+  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  xpos <- -poslim
+  ypos <- -poslim
+  for(pp in 1:popsize){
+    ppop[[pp]] <- genetostlfile4   ("tmp.stl",gpop[[pp]],pos=spos(0, 0,0),offset=c(xpos,ypos,0),runlim=100,solo=F)
+    xpos<-xpos + 50
+    if(xpos == poslim){
+      xpos <- -poslim
+      ypos <- ypos + 50 
+    }
+  }
+  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  sink()
+
+}
+
+rwdhits <- dhits
+
+```
+
+
+
+
+
+
+#Comparing mean distances: 
+
+```{r}
+pdf(file="dists.pdf",width = 6, height = 4)
+ plot(x=c(1:100),y=rwdhits,ylim=c(0,120),pch=19,cex=0.6, xlab = "Generation", ylab = "mean NS Distance", type = "l")
+ lines(x=c(1:100),y=vanilladhits,col="red",pch=19,cex=0.6)
+ lines(x=c(1:100),y=archivedhits,col="blue",pch=19,cex=0.6)
+ 
+ legend("topleft",legend = c("random walk","no archive","archive"),lty=1,cex=0.6,col = c("black","red","blue"))
+dev.off()
+```
+
+
+
+*Copying Gomes et al:*
+
+"The genetic algorithm uses tournament selection, an elite of size 5, per-gene Gaussian mutation, no
+crossover, and the population size is set to 200 (the sames
+as in NEAT). The configuration of the NEAT algorithm is
+described in Section 3.2.
+Novelty search is implemented over these two algorithms
+using the parameters found in Section 4.1: k=15 and a
+randomly-composed archive with λ=6. Fitness-based evolution is presented as a baseline in both cases. The results
+are depicted in Figure 6 "
+
+
+# Multiple runs
+
+We've done enough with the individual trals to be able to put it all ina function now - that way we can run many iterations
+
+
+
+Let's do the archived runs first - they seem to 
+
+```{r eval=F, message=FALSE, warning=FALSE}
+source("../shapevol1/R/novsearch.R")
+#dhvanilla <- list()
+#dhvanilla[[1]] <- vanilladhits
+
+#for(rr in 2:10){
+#  message(sprintf("Doing run %d",rr))
+#  dhvanilla[[rr]] <- novsearch(geneset,save=T,lambda=0,seed = (435+rr), fnroot = #sprintf("van2run%02d",rr))
+#}
+```
+
+
+```{r eval=F, message=T, warning=FALSE}
+library(shapevol1)
+source("../shapevol1/R/novsearch.R")
+require(stringr)
+dhrw <- list()
+dhrw[[1]] <- rwdhits
+
+for(rr in 2:10){
+  message(sprintf("Doing run %d",rr))
+  dhrw[[rr]] <- novsearch(geneset,save=T,lambda=0,seed = (435+rr), rwalk = T, fnroot = sprintf("rw2run%02d",rr))
+}
+
+save(dhrw,file="dhrw.Rdata")
+```
+
+
+
+Now we can create some more detailed plots like this: 
+
+
+```{r fig.height=6, fig.width=6}
+plot(NA,xlim=c(1,100),ylim=c(0,175),xlab="generation",ylab="distance to seed")
+alph <- 0.2
+alladata <- as.data.frame(dharch[[1]])
+allvdata <- as.data.frame(dhvanilla[[1]])
+allrdata <- as.data.frame(dhrw[[1]])
+
+rc <- rainbow(10)
+
+for(rr in 1:10){
+  lines(x=c(1:ncol(dharch[[rr]])),y=colMeans(dharch[[rr]]), col = adjustcolor( "red", alpha.f = alph))
+  lines(x=c(1:ncol(dhvanilla[[rr]])),y=colMeans(dhvanilla[[rr]]), col = adjustcolor( "blue", alpha.f = alph))
+  lines(x=c(1:ncol(dhrw[[rr]])),y=colMeans(dhrw[[rr]]), col = adjustcolor( "black", alpha.f = alph))
+  
+  if(rr>1){
+    alladata <- rbind(alladata,as.data.frame(dharch[[rr]]))
+    allvdata <- rbind(allvdata,as.data.frame(dhvanilla[[rr]]))
+    allrdata <- rbind(allrdata,as.data.frame(dhrw[[rr]]))
+  }
+  
+}
+
+#lines(x=c(1:ncol(alladata)),y=colMeans(alladata),col="black",lwd=3)
+lines(x=c(1:ncol(alladata)),y=colMeans(alladata),col="red",lwd=3)
+
+#lines(x=c(1:ncol(allvdata)),y=colMeans(allvdata),col="black",lwd=3)
+lines(x=c(1:ncol(allvdata)),y=colMeans(allvdata),col="blue",lwd=3)
+
+lines(x=c(1:ncol(allrdata)),y=colMeans(allrdata),col="black",lwd=3)
+
+legend("topleft",legend = c("Random Walk runs","Random Walk (global mean)","Archive runs","Archive (global mean)","No Archive runs","No Archive (global mean)"),lwd=c(1,3,1,3,1,3),col=c("black","black","red","red","blue","blue"))
+
+dev.copy2pdf(file="dists.pdf",width = 6,height = 5)
+
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

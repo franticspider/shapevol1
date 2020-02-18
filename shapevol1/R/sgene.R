@@ -44,16 +44,34 @@ spos <- function(X,Y,Z){
 #' @export
 #' @examples
 #' pp <- spos(0.0,0.0,0.1)
-addpos <- function(X,Y,Z,pos=NULL,err=0.01){
+addpos <- function(X,Y,Z,pos=NULL,seenpos=NULL,err=0.01){
   tmp <- spos(X,Y,Z)
   if(is.null(pos))
-    pos <- tmp
+    if(!is.null(seenpos)){
+      elim <- data.frame(X = abs(seenpos$X-tmp$X), Y = abs(seenpos$Y-tmp$Y), Z = abs(seenpos$Z-tmp$Z))
+      elim <- elim[elim$X < err & elim$Y <err & elim$Z < err,]
+      if(nrow(elim)==0){
+        pos <- tmp
+      }
+    }
+    else
+      pos <- tmp
   else{
     elim <- data.frame(X = abs(pos$X-tmp$X), Y = abs(pos$Y-tmp$Y), Z = abs(pos$Z-tmp$Z))
     elim <- elim[elim$X < err & elim$Y <err & elim$Z < err,]
     
-    if(nrow(elim)==0)
-      pos <- rbind(pos,tmp)
+    if(nrow(elim)==0){
+      if(!is.null(seenpos)){
+        elim <- data.frame(X = abs(seenpos$X-tmp$X), Y = abs(seenpos$Y-tmp$Y), Z = abs(seenpos$Z-tmp$Z))
+        elim <- elim[elim$X < err & elim$Y <err & elim$Z < err,]
+        if(nrow(elim)==0){
+          pos <- rbind(pos,tmp)
+        }
+      }
+      else{
+        pos <- rbind(pos,tmp)
+      }
+    }
   }
   return(pos)
 }

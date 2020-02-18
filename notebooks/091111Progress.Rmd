@@ -645,7 +645,7 @@ genetostlfile4   ("~/Desktop/stl/seedX4g3_00_15_10.stl",rbind(group1,group2,grou
 Hmmm - problems with the far side legs interfering with each other - let's investigate: 
 
 ```{r}
-
+require(stringr)
 source("../shapevol1/R/genetostl4.R")
 endleg <- rbind(gene19,gene20,gene21
                 #,gene22,gene23,gene24
@@ -674,6 +674,19 @@ genetostlfile4   ("~/Desktop/stl/endlegX00_15_10.stl",rbind(group1,endlegX),pos=
 
 
 
+```{r}
+
+
+#Legs:
+group3s <- rbind(gene16,gene17,gene18
+                )
+
+require(stringr)
+source("../shapevol1/R/sgene.R")
+source("../shapevol1/R/genetostl.R")
+source("../shapevol1/R/genetostl4.R")
+genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00s.stl",rbind(group1,group2,group3s),pos=spos(0, 0,0),runlim=40)
+```
 
 
 

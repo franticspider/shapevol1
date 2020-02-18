@@ -39,7 +39,7 @@ checklimits <- function(gene,rx="X",pos){
 #' @return dominance value as an integer
 #' @examples
 #' domgene <- domInZone(data.frame(X=0,Y=1,Z=2),genegroup1)
-domInZone <- function(pos,group){
+domInZone <- function(pos,group,verbose=F){
   
   #We only want (for now) The list of dominances for *position* variables
   #group <- group[str_detect(group$att,".(X|Y|Z)"),]
@@ -72,7 +72,7 @@ domInZone <- function(pos,group){
       return(dd)
   }
   
-  message("Nothing to process for this position")
+  if(verbose)message("Nothing to process for this position")
   return (NA)
 }
 
@@ -101,47 +101,48 @@ attDir <- function (att,dd){
 #' @return a dataframe containing the gene
 #' @examples
 #' g1 <- sgene("DirectionX",0,T,0,1.5,1)
-genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),runlim=1000,comments=F,debug=F){
+genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),runlim=1000,comments=F,verbose = F,debug=F,solo=T){
   
   running <- T
+
+  seenpos<-pos
+    
+  if(verbose)message(sprintf("writing stl file to %s",fn))
   
-  message(sprintf("writing stl file to %s",fn))
-  
-  sink(file = fn)
-  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  if(solo){
+    sink(file = fn)
+    cat("solid Exported from Blender-2.80 (sub 75)\n")
+  }
   
   iterations<-0
   #Scan the gene for a shape and size
   while (running){
     
-    #message(sprintf("Iteration %d, position = %0.2f,%0.2f,%0.2f",iterations,pos[1],pos[2],pos[3]))
-    message(sprintf("Iteration %d, %d positions to parse:",iterations,nrow(pos)))
+    if(verbose)message(sprintf("Iteration %d, %d positions to parse:",iterations,nrow(pos)))
     if(comments)cat(sprintf("\n#Iteration %d, %d positions to parse\n",iterations,nrow(pos)))
-    for(px in 1:nrow(pos)){
-      message(sprintf("\t\t%0.0f,%0.0f,%0.0f",pos$X[px],pos$Y[px],pos$Z[px]))
+    if(verbose){
+      for(px in 1:nrow(pos)){
+        message(sprintf("\t\t%0.0f,%0.0f,%0.0f",pos$X[px],pos$Y[px],pos$Z[px]))
+      }
     }
-    
-    
-    #take a copy of the current position set: 
-    oldpos <- pos
-    
-    #TODO: check for active genes - but since all genes are active at present, this is unnecessary
     
     #create the empty posnext to hold the next set of positions:
     posnext <- NULL
     
-    #browser()
+    if(debug)browser()
     for(pp in 1:nrow(pos)){ 
       
       #################################################################
       # GET THE CURRENT SHAPE ATTRIBUTES
       # todo: check the zoning is working properly
       cs <- gene[gene$att == "Cross section",]
-      if(nrow(cs) == 1){
-        message(sprintf("Cross section is %s",cs$valtyp[1]))
-      }
-      else{
-        message("Multiple cross sections!")
+      if(verbose){
+        if(nrow(cs) == 1){
+          message(sprintf("Cross section is %s",cs$valtyp[1]))
+        }
+        else{
+          message("Multiple cross sections!")
+        }
       }
       active_cs <- cs$valtyp[1]
       
@@ -158,41 +159,26 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),runlim=1000,comme
           message(sprintf("%d: Att = %s, Val = %s",ll,ls$att[ll],ls$valtyp[ll]))
         }
       }
-      message(sprintf("Length is %0.2f",as.numeric(ls$valtyp[1])))
+      if(verbose)message(sprintf("Length is %0.2f",as.numeric(ls$valtyp[1])))
       active_len <- as.numeric(ls$valtyp[1])
       
       #GET THE CURRENT DIAMETER
       ds <- gene[gene$att == "Diameter",]
-      message(sprintf("DIA,  ds has %d rows ",nrow(ds)))
+      if(verbose)message(sprintf("DIA,  ds has %d rows ",nrow(ds)))
       ds <- ds[ds$start <= pos$Z[pp] & ds$stop >= pos$Z[pp],] # TODO: Identify which dimension this applies!
-      message(sprintf("STST, ds has %d rows ",nrow(ds)))
+      if(verbose)message(sprintf("STST, ds has %d rows ",nrow(ds)))
       ds <- ds[ds$dom == max(ds$dom),]
-      message(sprintf("DOM,  ds has %d rows ",nrow(ds)))
+      if(verbose)message(sprintf("DOM,  ds has %d rows ",nrow(ds)))
       if(nrow(ds) == 1){
-        message(sprintf("Diameter is %0.2f",as.numeric(ds$valtyp[1])))
+        if(verbose)message(sprintf("Diameter is %0.2f",as.numeric(ds$valtyp[1])))
       }
       else{
-        message("Multiple Diameters!")
+        if(verbose)message("Multiple Diameters!")
       }
       active_dia <- as.numeric(ds$valtyp[1])
       #####################################################################
       
-      message(sprintf("Parsing position %d: %0.0f,%0.0f, %0.0f",pp,pos$X[pp],pos$Y[pp],pos$Z[pp]))
-      
-      # CALCULATE THE DIRECTION:
-      # Assume that the start/stop values *only* apply to the direction in which the gene operates...??
-      #Xdimension
-      #dirsX <- gene[str_detect(gene$att,".X") & gene$start<= pos$X[pp] & gene$stop >= pos$X[pp], ]
-      #message(sprintf("Found %d X direction genes, pos is %d,%d,%d",nrow(dirsX),pos$X[pp],pos$Y[pp],pos$Z[pp]))
-      #Ydimension
-      #dirsY <- gene[str_detect(gene$att,".Y") & gene$start<= pos$Y[pp] & gene$stop >= pos$Y[pp], ]
-      #message(sprintf("Found %d Y direction genes, pos is %d,%d,%d",nrow(dirsY),pos$X[pp],pos$Y[pp],pos$Z[pp]))
-      #Zdimension
-      #dirsZ <- gene[str_detect(gene$att,".Z") & gene$start<= pos$Z[pp] & gene$stop >= pos$Z[pp], ]
-      #message(sprintf("Found %d Z direction genes, pos is %d,%d,%d",nrow(dirsZ),pos$X[pp],pos$Y[pp],pos$Z[pp]))
-      #dirs <- rbind(dirsX,dirsY,dirsZ)
-      
-      #browser()
+      if(verbose)message(sprintf("Parsing position %d: %0.0f,%0.0f, %0.0f",pp,pos$X[pp],pos$Y[pp],pos$Z[pp]))
       
       domval <- domInZone(pos[pp,],gene)
       #browser()
@@ -202,65 +188,60 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),runlim=1000,comme
       if(!is.na(domval)){
         dirs <- gene[gene$dom == domval,]
         
-        ##Use zero-valued directions to check the spatial scope of the genes...
-        #dv <- unique(dirs$dom,)
-        #dv <- dv[order(dv,decreasing = T)]
-        ## Starting with the highest, go through the dominance levels until we find one 
-        ## where the current position is "in zone"
-        #for(dd in dv){
-        #  ddirs <- dirs[dirs$dom == dd,]
-        #}
-        
         #Select the dominant direction:
-        message(sprintf("Max dominance is %0.0f: found %d genes",max(dirs$dom),nrow(dirs)))
+        if(verbose)message(sprintf("Max dominance is %0.0f: found %d genes",max(dirs$dom),nrow(dirs)))
         dirs <- dirs[dirs$dom == max(dirs$dom),]
-        message(sprintf("after dominance pruning, %d genes remain",nrow(dirs)))
+        if(verbose)message(sprintf("after dominance pruning, %d genes remain",nrow(dirs)))
         
         #Get directions from the non-zero valued attributes
         dirs <- dirs[as.numeric(dirs$valtyp)!=0,]
-        message(sprintf("Found %d nonzero direction genes, direction is %s",nrow(dirs),dirs$att[1]))
+        if(verbose)message(sprintf("Found %d nonzero direction genes, direction is %s",nrow(dirs),dirs$att[1]))
         if(debug)browser()
         if(nrow(dirs)>0){
           pc <- 1
           for(dd in 1:nrow(dirs)){
             
-            message(sprintf("Processing active gene %d, name is %s",dd,dirs$att[dd]))
+            if(verbose)message(sprintf("Processing active gene %d, name is %s",dd,dirs$att[dd]))
             
-            #browser()
+            #
+            if(debug)
+              browser()
             
             
             #if(str_detect(dirs$att[dd],"^X") & dirs$start[dd]<= pos$X[pp] & dirs$stop[dd] >=  pos$X[pp] ){
             if(attDir(dirs$att[dd],"X") & dirs$start[dd]<= pos$X[pp] & dirs$stop[dd] >=  pos$X[pp] ){
               active_dir <- "X" 
               vts <- as.numeric(dirs$valtyp[dd])
-              #posnext$X[pc] <-posnext$X[pc]+active_len
-              posnext <- addpos(pos$X[pp]+(active_len*vts),pos$Y[pp],pos$Z[pp],posnext)
-              printpos(posnext,"posnext is now:")
+              posnext <- addpos(pos$X[pp]+(active_len*vts),pos$Y[pp],pos$Z[pp],posnext,seenpos)
+              seenpos <- addpos(pos$X[pp]+(active_len*vts),pos$Y[pp],pos$Z[pp],seenpos)
+              if(verbose)printpos(posnext,"posnext is now:")
             } 
             #if(str_detect(dirs$att[dd],"^Y") & dirs$start[dd]<= pos$Y[pp] & dirs$stop[dd] >=  pos$Y[pp]){
             if(attDir(dirs$att[dd],"Y") & dirs$start[dd]<= pos$Y[pp] & dirs$stop[dd] >=  pos$Y[pp] ){
               active_dir <- "Y" 
               vts <- as.numeric(dirs$valtyp[dd])
               ##posnext[2] <-posnext[2]+active_len
-              posnext <- addpos(pos$X[pp],pos$Y[pp]+(active_len*vts),pos$Z[pp],posnext)
-              printpos(posnext,"posnext is now:")
+              posnext <- addpos(pos$X[pp],pos$Y[pp]+(active_len*vts),pos$Z[pp],posnext,seenpos)
+              seenpos <- addpos(pos$X[pp],pos$Y[pp]+(active_len*vts),pos$Z[pp],seenpos)
+              if(verbose)printpos(posnext,"posnext is now:")
             } 
             #if(str_detect(dirs$att[dd],"^Z") & dirs$start[dd]<= pos$Z[pp] & dirs$stop[dd] >= pos$Z[pp]){
             if(attDir(dirs$att[dd],"Z") & dirs$start[dd]<= pos$Z[pp] & dirs$stop[dd] >=  pos$Z[pp] ){
               active_dir <- "Z" 
               vts <- as.numeric(dirs$valtyp[dd])
               #posnext[3] <-posnext[3]+active_len
-              posnext <- addpos(pos$X[pp],pos$Y[pp],pos$Z[pp]+(active_len*vts),posnext)
-              printpos(posnext,"posnext is now:")
+              posnext <- addpos(pos$X[pp],pos$Y[pp],pos$Z[pp]+(active_len*vts),posnext,seenpos)
+              seenpos <- addpos(pos$X[pp],pos$Y[pp],pos$Z[pp]+(active_len*vts),seenpos)
+              if(verbose)printpos(posnext,"posnext is now:")
             } 
-            message(sprintf("Active Direction is %s",active_dir))
+            if(verbose)message(sprintf("Active Direction is %s",active_dir))
             
             #Draw what we have
             #draw_gene_to_stl(pos,active_cs,active_len,active_dia)
             if(active_dir != "N"){
-              message(sprintf("Drawing a segment at pos %0.0f,%0.0f,%0.0f. active_len=%0.0f, vts=%0.0f",
+              if(verbose)message(sprintf("Drawing a segment at pos %0.0f,%0.0f,%0.0f. active_len=%0.0f, vts=%0.0f",
                               pos$X[pp],pos$Y[pp],pos$Z[pp],active_len,vts))
-              drawCStoSTL(pos[pp,],active_cs,active_len*vts,active_dia,active_dir)
+              drawCStoSTL(pos[pp,],active_cs,active_len*vts,active_dia,active_dir,offset,verbose)
             }
           }
         }
@@ -270,40 +251,32 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),runlim=1000,comme
     #if(active_dir == "N"){
     if(is.null(posnext)){
       if(debug)browser()
-      message("No active positions to parse!")
+      if(verbose)message("No active positions to parse!")
       break
     }
-    #Update posn
-    #TODO: Potentially need to check whether any positions in pos have already been seen!
     pos <- posnext
-    #if(str_detect(dirs$att[1],".X")) pos[1] <- pos[1]+active_len
-    #if(str_detect(dirs$att[1],".Y")) pos[2] <- pos[2]+active_len
-    #if(str_detect(dirs$att[1],".Z")) pos[3] <- pos[3]+active_len
-    
-    #update status
-    # for(dd in 1:nrow(dirs)){
-    #   if(dirs$att[dd] == "DirectionX")
-    #     if(pos[1] > dirs$stop[dd]){
-    #       message("Reached DirectionX stop");running<-F}
-    #   if(dirs$att[dd] == "DirectionY")
-    #     if(pos[2] > dirs$stop[dd]){
-    #       message("Reached DirectionY stop");running<-F}
-    #   if(dirs$att[dd] == "DirectionZ")
-    #     if(pos[3] > dirs$stop[dd]){
-    #       message("Reached DirectionZ stop");running<-F}
-    # }
     
     # Limit infinite runs
     if(iterations > runlim){
-      browser()
-      message("finished")
+      if(debug)browser()
+      message("finished (iterations > runlim)")
       running<-F
     }
     iterations <- iterations + 1
     
-    message(sprintf("Running is %d, iterations = %d, runlim = %d\n",running,iterations,runlim))
+    if(verbose)message(sprintf("Running is %d, iterations = %d, runlim = %d\n",running,iterations,runlim))
   }
   
-  cat("solid Exported from Blender-2.80 (sub 75)\n")
-  sink()
+  if(solo){
+    cat("solid Exported from Blender-2.80 (sub 75)\n")
+    sink()
+  }
+  
+  #create a return data object
+  pdata <- list()
+  pdata$iterations <- iterations
+  pdata$positions <- seenpos
+  
+  return(pdata)
+  
 }
