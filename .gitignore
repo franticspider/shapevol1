@@ -35,3 +35,9 @@ vignettes/*.pdf
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
 .Rproj.user
+
+# 3D model files: 
+*.stl
+
+# 3D model RData files
+*/*.Rdata
