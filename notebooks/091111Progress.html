@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 
 <head>
 
 <meta charset="utf-8" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
@@ -1601,6 +1600,7 @@ summary {
   border: none;
   display: inline-block;
   border-radius: 4px;
+  background-color: transparent;
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li {
@@ -1928,7 +1928,7 @@ source(&quot;../shapevol1/R/genetostl.R&quot;)
 source(&quot;../shapevol1/R/genetostl4.R&quot;)
 genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_00_10.stl&quot;,rbind(group1,group2,group3),pos=spos(0, 0,10),runlim=20)</code></pre>
 <pre><code>## $iterations
-## [1] 22
+## [1] 7
 ## 
 ## $positions
 ##     X  Y  Z
@@ -1956,7 +1956,7 @@ genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_00_10.stl&quot;,rbind(group1,g
 ## 22 10 20  5</code></pre>
 <pre class="r"><code>genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_10_05_10.stl&quot;,rbind(group1,group2,group3),pos=spos(10, 5,10),runlim=20)</code></pre>
 <pre><code>## $iterations
-## [1] 22
+## [1] 4
 ## 
 ## $positions
 ##     X  Y  Z
@@ -1972,7 +1972,7 @@ genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_00_10.stl&quot;,rbind(group1,g
 ## 10 10 20  5</code></pre>
 <pre class="r"><code>genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_05_05_10.stl&quot;,rbind(group1,group2,group3),pos=spos( 5, 5,10),runlim=20)</code></pre>
 <pre><code>## $iterations
-## [1] 22
+## [1] 5
 ## 
 ## $positions
 ##     X  Y  Z
@@ -1992,7 +1992,7 @@ genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_00_10.stl&quot;,rbind(group1,g
 ## 14 10 20  5</code></pre>
 <pre class="r"><code>genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_10_10_10.stl&quot;,rbind(group1,group2,group3),pos=spos(10,10,10),runlim=20)</code></pre>
 <pre><code>## $iterations
-## [1] 22
+## [1] 3
 ## 
 ## $positions
 ##    X  Y  Z
@@ -2006,7 +2006,7 @@ genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_00_10.stl&quot;,rbind(group1,g
 ## 8 10 20  5</code></pre>
 <pre class="r"><code>genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_10_10.stl&quot;,rbind(group1,group2,group3),pos=spos( 0,10,10),runlim=20)</code></pre>
 <pre><code>## $iterations
-## [1] 22
+## [1] 5
 ## 
 ## $positions
 ##     X  Y  Z
@@ -2026,7 +2026,7 @@ genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_00_10.stl&quot;,rbind(group1,g
 ## 14 10 20  5</code></pre>
 <pre class="r"><code>genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_00_10.stl&quot;,rbind(group1,group2,group3),pos=spos( 0, 0,10),runlim=20)</code></pre>
 <pre><code>## $iterations
-## [1] 22
+## [1] 7
 ## 
 ## $positions
 ##     X  Y  Z
@@ -2124,363 +2124,6 @@ source(&quot;../shapevol1/R/sgene.R&quot;)
 source(&quot;../shapevol1/R/genetostl.R&quot;)
 source(&quot;../shapevol1/R/genetostl4.R&quot;)
 genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_00_00.stl&quot;,rbind(group1,group2,group3),pos=spos(0, 0,0),runlim=40)</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 0,0, 0</code></pre>
-<pre><code>## Max dominance is 50: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 1 nonzero direction genes, direction is Z_1Z</code></pre>
-<pre><code>## Processing active gene 1, name is Z_1Z</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=0, y=0, z=5</code></pre>
-<pre><code>## Active Direction is Z</code></pre>
-<pre><code>## Drawing a segment at pos 0,0,0. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,0,0</code></pre>
-<pre><code>## Running is 1, iterations = 1, runlim = 40</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 0,0, 5</code></pre>
-<pre><code>## Max dominance is 50: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 1 nonzero direction genes, direction is Z_1Z</code></pre>
-<pre><code>## Processing active gene 1, name is Z_1Z</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=0, y=0, z=10</code></pre>
-<pre><code>## Active Direction is Z</code></pre>
-<pre><code>## Drawing a segment at pos 0,0,5. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,0,5</code></pre>
-<pre><code>## Running is 1, iterations = 2, runlim = 40</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 0,0, 10</code></pre>
-<pre><code>## Max dominance is 48: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 2 nonzero direction genes, direction is T1_2X</code></pre>
-<pre><code>## Processing active gene 1, name is T1_2X</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=5, y=0, z=10</code></pre>
-<pre><code>## Active Direction is X</code></pre>
-<pre><code>## Drawing a segment at pos 0,0,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,0,10</code></pre>
-<pre><code>## Processing active gene 2, name is T2_2Y</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=5, y=0, z=10</code></pre>
-<pre><code>## 02: x=0, y=5, z=10</code></pre>
-<pre><code>## Active Direction is Y</code></pre>
-<pre><code>## Drawing a segment at pos 0,0,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,0,10</code></pre>
-<pre><code>## Running is 1, iterations = 3, runlim = 40</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 5,0, 10</code></pre>
-<pre><code>## Max dominance is 48: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 2 nonzero direction genes, direction is T1_2X</code></pre>
-<pre><code>## Processing active gene 1, name is T1_2X</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=0, z=10</code></pre>
-<pre><code>## Active Direction is X</code></pre>
-<pre><code>## Drawing a segment at pos 5,0,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 5,0,10</code></pre>
-<pre><code>## Processing active gene 2, name is T2_2Y</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=0, z=10</code></pre>
-<pre><code>## 02: x=5, y=5, z=10</code></pre>
-<pre><code>## Active Direction is Y</code></pre>
-<pre><code>## Drawing a segment at pos 5,0,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 5,0,10</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 2: 0,5, 10</code></pre>
-<pre><code>## Max dominance is 48: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 2 nonzero direction genes, direction is T1_2X</code></pre>
-<pre><code>## Processing active gene 1, name is T1_2X</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=0, z=10</code></pre>
-<pre><code>## 02: x=5, y=5, z=10</code></pre>
-<pre><code>## Active Direction is X</code></pre>
-<pre><code>## Drawing a segment at pos 0,5,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,5,10</code></pre>
-<pre><code>## Processing active gene 2, name is T2_2Y</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=0, z=10</code></pre>
-<pre><code>## 02: x=5, y=5, z=10</code></pre>
-<pre><code>## 03: x=0, y=10, z=10</code></pre>
-<pre><code>## Active Direction is Y</code></pre>
-<pre><code>## Drawing a segment at pos 0,5,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,5,10</code></pre>
-<pre><code>## Running is 1, iterations = 4, runlim = 40</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 10,0, 10</code></pre>
-<pre><code>## Max dominance is 46: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 2 nonzero direction genes, direction is T4_2Y</code></pre>
-<pre><code>## Processing active gene 1, name is T4_2Y</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=5, z=10</code></pre>
-<pre><code>## Active Direction is Y</code></pre>
-<pre><code>## Drawing a segment at pos 10,0,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 10,0,10</code></pre>
-<pre><code>## Processing active gene 2, name is T4_2Z</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=5, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=5</code></pre>
-<pre><code>## Active Direction is Z</code></pre>
-<pre><code>## Drawing a segment at pos 10,0,10. active_len=5, vts=-1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 10,0,10</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 2: 5,5, 10</code></pre>
-<pre><code>## Max dominance is 48: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 2 nonzero direction genes, direction is T1_2X</code></pre>
-<pre><code>## Processing active gene 1, name is T1_2X</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=5, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=5</code></pre>
-<pre><code>## Active Direction is X</code></pre>
-<pre><code>## Drawing a segment at pos 5,5,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 5,5,10</code></pre>
-<pre><code>## Processing active gene 2, name is T2_2Y</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=5, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=5</code></pre>
-<pre><code>## 03: x=5, y=10, z=10</code></pre>
-<pre><code>## Active Direction is Y</code></pre>
-<pre><code>## Drawing a segment at pos 5,5,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 5,5,10</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 3: 0,10, 10</code></pre>
-<pre><code>## Max dominance is 48: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 2 nonzero direction genes, direction is T1_2X</code></pre>
-<pre><code>## Processing active gene 1, name is T1_2X</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=5, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=5</code></pre>
-<pre><code>## 03: x=5, y=10, z=10</code></pre>
-<pre><code>## Active Direction is X</code></pre>
-<pre><code>## Drawing a segment at pos 0,10,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,10,10</code></pre>
-<pre><code>## Processing active gene 2, name is T2_2Y</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=5, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=5</code></pre>
-<pre><code>## 03: x=5, y=10, z=10</code></pre>
-<pre><code>## 04: x=0, y=15, z=10</code></pre>
-<pre><code>## Active Direction is Y</code></pre>
-<pre><code>## Drawing a segment at pos 0,10,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,10,10</code></pre>
-<pre><code>## Running is 1, iterations = 5, runlim = 40</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 10,5, 10</code></pre>
-<pre><code>## Max dominance is 45: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 1 nonzero direction genes, direction is T5_2Y</code></pre>
-<pre><code>## Processing active gene 1, name is T5_2Y</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=10, z=10</code></pre>
-<pre><code>## Active Direction is Y</code></pre>
-<pre><code>## Drawing a segment at pos 10,5,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 10,5,10</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 2: 10,0, 5</code></pre>
-<pre><code>## Max dominance is 43: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 1 nonzero direction genes, direction is L3_2Z</code></pre>
-<pre><code>## Processing active gene 1, name is L3_2Z</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=10, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=0</code></pre>
-<pre><code>## Active Direction is Z</code></pre>
-<pre><code>## Drawing a segment at pos 10,0,5. active_len=5, vts=-1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 10,0,5</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 3: 5,10, 10</code></pre>
-<pre><code>## Max dominance is 48: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 2 nonzero direction genes, direction is T1_2X</code></pre>
-<pre><code>## Processing active gene 1, name is T1_2X</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=10, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=0</code></pre>
-<pre><code>## Active Direction is X</code></pre>
-<pre><code>## Drawing a segment at pos 5,10,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 5,10,10</code></pre>
-<pre><code>## Processing active gene 2, name is T2_2Y</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=10, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=0</code></pre>
-<pre><code>## 03: x=5, y=15, z=10</code></pre>
-<pre><code>## Active Direction is Y</code></pre>
-<pre><code>## Drawing a segment at pos 5,10,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 5,10,10</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 4: 0,15, 10</code></pre>
-<pre><code>## Max dominance is 47: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 2 nonzero direction genes, direction is T3_2X</code></pre>
-<pre><code>## Processing active gene 1, name is T3_2X</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=10, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=0</code></pre>
-<pre><code>## 03: x=5, y=15, z=10</code></pre>
-<pre><code>## Active Direction is X</code></pre>
-<pre><code>## Drawing a segment at pos 0,15,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,15,10</code></pre>
-<pre><code>## Processing active gene 2, name is T3_2Z</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=10, z=10</code></pre>
-<pre><code>## 02: x=10, y=0, z=0</code></pre>
-<pre><code>## 03: x=5, y=15, z=10</code></pre>
-<pre><code>## 04: x=0, y=15, z=5</code></pre>
-<pre><code>## Active Direction is Z</code></pre>
-<pre><code>## Drawing a segment at pos 0,15,10. active_len=5, vts=-1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,15,10</code></pre>
-<pre><code>## Running is 1, iterations = 6, runlim = 40</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 10,10, 10</code></pre>
-<pre><code>## Max dominance is 45: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 1 nonzero direction genes, direction is T5_2Y</code></pre>
-<pre><code>## Processing active gene 1, name is T5_2Y</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=15, z=10</code></pre>
-<pre><code>## Active Direction is Y</code></pre>
-<pre><code>## Drawing a segment at pos 10,10,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 10,10,10</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 2: 10,0, 0</code></pre>
-<pre><code>## Nothing to process for this position</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 3: 5,15, 10</code></pre>
-<pre><code>## Max dominance is 44: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 1 nonzero direction genes, direction is T6_2X</code></pre>
-<pre><code>## Processing active gene 1, name is T6_2X</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=15, z=10</code></pre>
-<pre><code>## Active Direction is X</code></pre>
-<pre><code>## Drawing a segment at pos 5,15,10. active_len=5, vts=1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 5,15,10</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 4: 0,15, 5</code></pre>
-<pre><code>## Max dominance is 43: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 1 nonzero direction genes, direction is L3_2Z</code></pre>
-<pre><code>## Processing active gene 1, name is L3_2Z</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=15, z=10</code></pre>
-<pre><code>## 02: x=0, y=15, z=0</code></pre>
-<pre><code>## Active Direction is Z</code></pre>
-<pre><code>## Drawing a segment at pos 0,15,5. active_len=5, vts=-1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 0,15,5</code></pre>
-<pre><code>## Running is 1, iterations = 7, runlim = 40</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 10,15, 10</code></pre>
-<pre><code>## Max dominance is 51: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 1 nonzero direction genes, direction is L4_2Z</code></pre>
-<pre><code>## Processing active gene 1, name is L4_2Z</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=15, z=5</code></pre>
-<pre><code>## Active Direction is Z</code></pre>
-<pre><code>## Drawing a segment at pos 10,15,10. active_len=5, vts=-1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 10,15,10</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 2: 0,15, 0</code></pre>
-<pre><code>## Nothing to process for this position</code></pre>
-<pre><code>## Running is 1, iterations = 8, runlim = 40</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 10,15, 5</code></pre>
-<pre><code>## Max dominance is 51: found 3 genes</code></pre>
-<pre><code>## after dominance pruning, 3 genes remain</code></pre>
-<pre><code>## Found 1 nonzero direction genes, direction is L4_2Z</code></pre>
-<pre><code>## Processing active gene 1, name is L4_2Z</code></pre>
-<pre><code>## posnext is now:</code></pre>
-<pre><code>## 01: x=10, y=15, z=0</code></pre>
-<pre><code>## Active Direction is Z</code></pre>
-<pre><code>## Drawing a segment at pos 10,15,5. active_len=5, vts=-1</code></pre>
-<pre><code>## inside drawCStoSTL Setting pos to 10,15,5</code></pre>
-<pre><code>## Running is 1, iterations = 9, runlim = 40</code></pre>
-<pre><code>## Length is 5.00</code></pre>
-<pre><code>## DIA,  ds has 1 rows</code></pre>
-<pre><code>## STST, ds has 1 rows</code></pre>
-<pre><code>## DOM,  ds has 1 rows</code></pre>
-<pre><code>## Diameter is 1.00</code></pre>
-<pre><code>## Parsing position 1: 10,15, 0</code></pre>
-<pre><code>## Nothing to process for this position</code></pre>
 <pre><code>## $iterations
 ## [1] 9
 ## 
@@ -2749,6 +2392,33 @@ genetostlfile4   (&quot;~/Desktop/stl/endlegX00_15_10.stl&quot;,rbind(group1,end
 ## 5  0 15  0
 ## 6 10 15  5
 ## 7 10 15  0</code></pre>
+<pre class="r"><code>#Legs:
+group3s &lt;- rbind(gene16,gene17,gene18
+                )
+
+require(stringr)
+source(&quot;../shapevol1/R/sgene.R&quot;)
+source(&quot;../shapevol1/R/genetostl.R&quot;)
+source(&quot;../shapevol1/R/genetostl4.R&quot;)
+genetostlfile4   (&quot;~/Desktop/stl/seedX4g3_00_00_00s.stl&quot;,rbind(group1,group2,group3s),pos=spos(0, 0,0),runlim=40)</code></pre>
+<pre><code>## $iterations
+## [1] 6
+## 
+## $positions
+##     X  Y  Z
+## 1   0  0  0
+## 2   0  0  5
+## 3   0  0 10
+## 4   5  0 10
+## 5   0  5 10
+## 6  10  0 10
+## 7   5  5 10
+## 8   0 10 10
+## 9  10  5 10
+## 10  5 10 10
+## 11  0 15 10
+## 12 10 10 10
+## 13  5 15 10</code></pre>
 </div>
 
 

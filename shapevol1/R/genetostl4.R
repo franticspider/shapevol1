@@ -207,11 +207,11 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),r
             if(debug)
               browser()
             
-            
             #if(str_detect(dirs$att[dd],"^X") & dirs$start[dd]<= pos$X[pp] & dirs$stop[dd] >=  pos$X[pp] ){
             if(attDir(dirs$att[dd],"X") & dirs$start[dd]<= pos$X[pp] & dirs$stop[dd] >=  pos$X[pp] ){
               active_dir <- "X" 
               vts <- as.numeric(dirs$valtyp[dd])
+
               posnext <- addpos(pos$X[pp]+(active_len*vts),pos$Y[pp],pos$Z[pp],posnext,seenpos)
               seenpos <- addpos(pos$X[pp]+(active_len*vts),pos$Y[pp],pos$Z[pp],seenpos)
               if(verbose)printpos(posnext,"posnext is now:")
@@ -230,6 +230,7 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),r
               active_dir <- "Z" 
               vts <- as.numeric(dirs$valtyp[dd])
               #posnext[3] <-posnext[3]+active_len
+
               posnext <- addpos(pos$X[pp],pos$Y[pp],pos$Z[pp]+(active_len*vts),posnext,seenpos)
               seenpos <- addpos(pos$X[pp],pos$Y[pp],pos$Z[pp]+(active_len*vts),seenpos)
               if(verbose)printpos(posnext,"posnext is now:")

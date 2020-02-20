@@ -689,5 +689,3 @@ genetostlfile4   ("~/Desktop/stl/seedX4g3_00_00_00s.stl",rbind(group1,group2,gro
 ```
 
 
-
-

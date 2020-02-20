@@ -42,3 +42,8 @@ rsconnect/
 
 # 3D model RData files
 *.Rdata
+
+# Notebook renders: 
+notebooks/*.html
+notebooks/*.pdf
+notebooks/*.doc

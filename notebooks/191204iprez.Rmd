@@ -20,7 +20,6 @@ knitr::opts_chunk$set(echo = FALSE)
 ## Target Shape
 
 
-
 ![Rendered](blender_table.png)
 
 
@@ -179,26 +178,3 @@ NB - *only mutatin
 
 
 - Replace the least novel in the population with mutations of the most novel
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
