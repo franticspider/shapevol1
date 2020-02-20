@@ -1,0 +1,50 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+
+
+## Test shape
+
+The test shape is pretty simple: start at position 0,0,0 and branch out in all six possible directions. Then see which slicer has problems with the result. 
+
+```{r echo=TRUE, message=FALSE}
+
+require(stringr)
+source("../shapevol1/R/sgene.R")
+source("../shapevol1/R/genetostl.R")
+source("../shapevol1/R/genetostl4.R")
+
+gene01 <- sgene("Cross section","Square",status = T,start=-40,stop=40,dom=1)
+gene02 <- sgene("Length",       5       ,status = T,start=-40,stop=40,dom=1)
+gene03 <- sgene("Diameter",     1       ,status = T,start=-40,stop=40,dom=0)
+group1 <- rbind(gene01,gene02,gene03)
+
+#positive branch
+gene04 <- sgene("X_1X",          1,status = T,start=0,stop=1,dom=50)
+gene05 <- sgene("Y_1Y",          1,status = T,start=0,stop=1,dom=50)
+gene06 <- sgene("Z_1Z",          1,status = T,start=0,stop=5,dom=50)
+group2 <- rbind(gene04,gene05,gene06)
+
+#bridge in x
+
+#negative branch
+
+# 
+# group3 <- rbind(gene07,gene08,gene09
+#                 ,gene10,gene11,gene12
+#                 ,gene13,gene14,gene15
+#                 ,gene16,gene17,gene18
+#                 ,gene19,gene20,gene21
+#                 ,gene22,gene23,gene24
+#                 )
+# 
+# geneset <- rbind(group1,group2,group3)
+
+geneset <- rbind(group1,group2,group3)
+
+pointset <- genetostlfile4   ("~/Desktop/stl/testneg.stl",geneset,pos=spos(0, 0,0),runlim=40)
+```
