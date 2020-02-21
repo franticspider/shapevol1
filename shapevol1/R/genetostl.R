@@ -233,7 +233,7 @@ genetostlfile <- function(fn="shape.stl",gene,pos=c(0,0,0),runlim=1000){
     message(sprintf("Running is %d, iterations = %d, runlim = %d",running,iterations,runlim))
   }
   
-  cat("solid Exported from Blender-2.80 (sub 75)\n")
+  cat("endsolid Exported from Blender-2.80 (sub 75)\n")
   sink()
 }
 

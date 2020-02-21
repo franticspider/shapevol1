@@ -46,6 +46,6 @@ geneset <- rbind(group1,group2)
 pointset <- genetostlfile4   ("~/Desktop/stl/testneg.stl",geneset,pos=spos(0, 0,0),runlim=40,verbose = T)
 ```
 
+If this shape loads correctly in the render engine of choice (blender,cura,slic3r,cura-lulzbot), then we can be satisfied that all other shapes in shapevol will also render (because we are checking all six possible directions)
 
-
-
+## Cura-lulzbot

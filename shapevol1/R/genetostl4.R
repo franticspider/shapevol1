@@ -269,7 +269,7 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),r
   }
   
   if(solo){
-    cat("solid Exported from Blender-2.80 (sub 75)\n")
+    cat("endsolid Exported from Blender-2.80 (sub 75)\n")
     sink()
   }
   
