@@ -1,11 +1,28 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 
+## Test the start block
+
+```{r echo=TRUE, message=FALSE}
+
+require(stringr)
+source("../shapevol1/R/sgene.R")
+source("../shapevol1/R/drawCStoSTL.R")
+source("../shapevol1/R/genetostl4.R")
+
+gene01 <- sgene("Cross section","Square",status = T,start=-40,stop=40,dom=1)
+gene02 <- sgene("Length",       5       ,status = T,start=-40,stop=40,dom=1)
+gene03 <- sgene("Diameter",     1       ,status = T,start=-40,stop=40,dom=1)
+group1 <- rbind(gene01,gene02,gene03)
 
 
+pointset <- genetostlfile4   ("~/Desktop/stl/teststart.stl",group1,pos=spos(0, 0,0),runlim=40,verbose = T)
+```
 
 ## Test shape
 
@@ -15,12 +32,12 @@ The test shape is pretty simple: start at position 0,0,0 and branch out in all s
 
 require(stringr)
 source("../shapevol1/R/sgene.R")
-source("../shapevol1/R/genetostl.R")
+source("../shapevol1/R/drawCStoSTL.R")
 source("../shapevol1/R/genetostl4.R")
 
 gene01 <- sgene("Cross section","Square",status = T,start=-40,stop=40,dom=1)
 gene02 <- sgene("Length",       5       ,status = T,start=-40,stop=40,dom=1)
-gene03 <- sgene("Diameter",     1       ,status = T,start=-40,stop=40,dom=0)
+gene03 <- sgene("Diameter",     1       ,status = T,start=-40,stop=40,dom=1)
 group1 <- rbind(gene01,gene02,gene03)
 
 #positive branch
@@ -43,10 +60,14 @@ group2 <- rbind(gene04,gene05,gene06,gene07,gene08,gene09,gene10,gene11,gene12)
 
 geneset <- rbind(group1,group2)
 
-pointset <- genetostlfile4   ("~/Desktop/stl/testneg.stl",geneset,pos=spos(0, 0,0),runlim=40,verbose = T)
+pointset <- genetostlfile4   ("~/Desktop/stl/testn.stl",geneset,pos=spos(0, 0,0),runlim=40,verbose = T)
 ```
 
 If this shape loads correctly in the render engine of choice (blender,cura,slic3r,cura-lulzbot), then we can be satisfied that all other shapes in shapevol will also render (because we are checking all six possible directions)
+
+
+
+
 
 ## plan for 'i' primitive
 

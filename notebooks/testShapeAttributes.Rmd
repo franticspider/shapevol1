@@ -1,0 +1,57 @@
+---
+title: "Testing Shape Attributes"
+author: "Simon Hickinbotham"
+date: "11/03/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Test shape with more than one group1 gene
+
+The test shape is pretty simple: start at position 0,0,0 and branch out in all six possible directions. Then see which slicer has problems with the result. 
+
+```{r echo=TRUE, message=FALSE}
+
+require(stringr)
+source("../shapevol1/R/sgene.R")
+source("../shapevol1/R/drawCStoSTL.R")
+source("../shapevol1/R/genetostl4.R")
+
+
+gene01n <- sgene("Cross section","Square",status = T,start=-40,stop=0,dom=2)
+gene02n <- sgene("Length",       5       ,status = T,start=-40,stop=0,dom=2)
+gene03n <- sgene("Diameter",     1.3       ,status = T,start=-40,stop=0,dom=2)
+group1n <- rbind(gene01n,gene02n,gene03n)
+
+
+gene01 <- sgene("Cross section","Square",status = T,start=1,stop=40,dom=1)
+gene02 <- sgene("Length",       5       ,status = T,start=1,stop=40,dom=1)
+gene03 <- sgene("Diameter",     1       ,status = T,start=1,stop=40,dom=1)
+group1 <- rbind(gene01,gene02,gene03)
+
+#positive branch
+gene04 <- sgene("X_1X",          1,status = T,start=0,stop=1,dom=50)
+gene05 <- sgene("Y_1Y",          1,status = T,start=0,stop=1,dom=50)
+gene06 <- sgene("Z_1Z",          1,status = T,start=0,stop=1,dom=50)
+
+#bridge in x
+gene07 <- sgene("X_1X",          0,status = T,start=5,stop=9,dom=49)
+gene08 <- sgene("Y_1Y",          0,status = T,start=0,stop=1,dom=49)
+gene09 <- sgene("Z_1Z",          -1,status = T,start=0,stop=1,dom=49)
+
+#bridge in x
+gene10 <- sgene("X_1X",          -1,status = T,start=5,stop=9,dom=48)
+gene11 <- sgene("Y_1Y",          -1,status = T,start=0,stop=1,dom=48)
+gene12 <- sgene("Z_1Z",          -1,status = T,start=-5,stop=-1,dom=48)
+
+group2 <- rbind(gene04,gene05,gene06,gene07,gene08,gene09,gene10,gene11,gene12)
+#negative branch
+
+geneset <- rbind(group1n,group1,group2)
+
+pointset <- genetostlfile4   ("~/Desktop/stl/testn.stl",geneset,pos=spos(0, 0,0),runlim=40,verbose = T)
+```

@@ -115,6 +115,7 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),r
   }
   
   iterations<-0
+  firstblock<-T
   #Scan the gene for a shape and size
   while (running){
     
@@ -154,7 +155,7 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),r
       }
       else{
         message(sprintf("Multiple Lengths! %d rows found",nrow(ls)))
-        browser()
+        #      browser()
         for(ll in 1:nrow(ls)){
           message(sprintf("%d: Att = %s, Val = %s",ll,ls$att[ll],ls$valtyp[ll]))
         }
@@ -179,6 +180,12 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),r
       #####################################################################
       
       if(verbose)message(sprintf("Parsing position %d: %0.0f,%0.0f, %0.0f",pp,pos$X[pp],pos$Y[pp],pos$Z[pp]))
+      
+      #Create the start block
+      if(firstblock){
+        drawCStoSTLv2(pos[pp,],active_cs,active_len*vts,active_dia,"Z",offset,verbose,initonly=T)
+        firstblock<-F
+      }
       
       domval <- domInZone(pos[pp,],gene)
       #browser()
@@ -242,7 +249,7 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),r
             if(active_dir != "N"){
               if(verbose)message(sprintf("Drawing a segment at pos %0.0f,%0.0f,%0.0f. active_len=%0.0f, vts=%0.0f",
                               pos$X[pp],pos$Y[pp],pos$Z[pp],active_len,vts))
-              drawCStoSTL(pos[pp,],active_cs,active_len*vts,active_dia,active_dir,offset,verbose)
+              drawCStoSTLv2(pos[pp,],active_cs,active_len*vts,active_dia,active_dir,offset,verbose)
             }
           }
         }
