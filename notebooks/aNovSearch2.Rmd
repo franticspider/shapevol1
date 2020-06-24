@@ -21,6 +21,7 @@ The seed shape is the "table" described in the file `091111Progress.Rmd`. Here w
 ```{r echo=TRUE, message=FALSE}
 
 require(stringr)
+require(shapevol1)
 source("../shapevol1/R/sgene.R")
 source("../shapevol1/R/genetostl.R")
 source("../shapevol1/R/genetostl4.R")

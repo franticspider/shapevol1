@@ -1,0 +1,901 @@
+---
+title: "Gradients and Grammars"
+author: "Simon Hickinbotham"
+date: "31/03/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Strategy
+
+We are trying to investigate using a *mix* of gradient based 'body plan hormones' and grammar-based 'construction rules' in order to solve the following problems: 
+
+- Brining together environmental influences on the construction of a shape
+- Evaluation of a design *before it is built*
+- Making it easier to pass the 'buildability test'. 
+- Makeing it easier to integrare evolved shapes with traditional artefacts (brackets etc. )
+
+
+This approach separates the environmental influences, the "where" we need growth, from the "how" to grow - which we can do more simply given this info. 
+
+- inspired by hox genes - broad-brushstroke body plans, organised by chemical gradients. Similar in a way to CPPNs
+- For engineering, we don't have to use a *relative* coordinate space - This proves problematic if growth is continuous
+
+Advantages:
+
+- Naturally incorporates info
+- Easy to put in other variables - via a Neural network for example
+- Easy to add changes to the envoronment - the nN would respond appropriately 
+- Could use a 'scaffold' to test various options
+- possible to specify where repeating features are positioned. 
+- Allows fully deterministic growth - repeatable
+- possible to 'sketch' a solution
+
+
+This is potentially a big task, so we are doing it in the following steps: 
+
+1. DONE: Devise a simple grammar that will grow a shape from an image
+2. DOING: Devise a neural-network/NEAT/CPPN framework to create the image 
+3. NEXT: Add a 'load' component to influence the strength/shape of the structure
+
+
+# Generating 3D from an image
+
+Load the PNG file like this: 
+
+```{r loadimage, message=F}
+require(png)
+imgin <- readPNG("~/Desktop/shapeimg/bridge100x40y.png")
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,xlab="X",ylab="Y")
+rasterImage(imgin, 1, 1, 100, 40)
+```
+
+OK, the next step is to make sure we can sample the pixels - let's to a graphic to check this: 
+
+
+```{r spotpixel, message=F}
+require(png)
+imgin <- readPNG("~/Desktop/shapeimg/bridge100x40y.png")
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1)
+rasterImage(imgin, 1, 1, 100, 40)
+
+for(xx in seq(1,100,5)){
+  for(yy in seq(1,35,5)){
+    if(imgin[40-yy,xx,1]<0.999)
+      points(x = xx, y = yy,pch=19,col="red",cex=0.2+((1-imgin[40-yy,xx,1])*3))
+  }
+}
+  
+
+
+
+```
+
+
+Great - let's now see if we can adapt the genetostl function to convert these points onto a parsable grammar (You'll have to execute this code outside the notebook..)
+
+*NB: due to a quirk in notebook/stl file generation, we have to turn the EVAL flag for the following chunk on on off depending on whether we are generating STL or HTML files respectively*
+
+```{r pngtostl, eval=F, include=TRUE, message=F}
+require(shapevol1)
+require(stringr)
+source("../shapevol1/R/sgene.R")
+source("../shapevol1/R/drawCStoSTL.R")
+source("../shapevol1/R/genetostl.R")
+source("../shapevol1/R/genetostl4.R")
+
+
+gene01 <- sgene("Cross section","Square",status = T,start=0,stop=100,dom=1)
+gene02 <- sgene("Length",       5       ,status = T,start=0,stop=100,dom=1)
+gene03 <- sgene("Diameter",     0.3       ,status = T,start=0,stop=100,dom=1)
+group1 <- rbind(gene01,gene02,gene03)
+
+#positive branch
+gene04 <- sgene("X_1X",          1,status = T,start=0,stop=100,dom=50)
+gene05 <- sgene("Y_1Y",          1,status = T,start=0,stop=40,dom=50)
+gene06 <- sgene("Z_1Z",          1,status = T,start=0,stop=5,dom=50)
+
+genein<-rbind(group1,gene04,gene05,gene06)
+
+##################
+#genetostlfilegrad <- function(fn="shape.stl",gene,img,pos=spos(0,0,0),offset=c(0,0,0),runlim=1000,comments=F,verbose = F,debug=F,solo=T){
+
+fn       <-"shape.stl"
+gene     <-genein
+img      <- imgin
+pos      <- spos(0,0,0)
+offset   <- c(0,0,0)
+runlim   <- 1000
+comments <-F
+verbose  <- F
+debug    <-F
+solo<-T
+
+################
+  running <- T
+
+  seenpos<-pos
+    
+  if(verbose)message(sprintf("writing stl file to %s",fn))
+  
+  if(solo){
+    sink(file = fn)
+    cat("solid Exported from Blender-2.80 (sub 75)\n")
+  }
+  
+  iterations<-0
+  firstblock<-T
+  #Scan the gene for a shape and size
+  while (running){
+    
+    if(verbose)message(sprintf("Iteration %d, %d positions to parse:",iterations,nrow(pos)))
+    if(comments)cat(sprintf("\n#Iteration %d, %d positions to parse\n",iterations,nrow(pos)))
+    if(verbose){
+      for(px in 1:nrow(pos)){
+        message(sprintf("\t\t%0.0f,%0.0f,%0.0f",pos$X[px],pos$Y[px],pos$Z[px]))
+      }
+    }
+    
+    #create the empty posnext to hold the next set of positions:
+    posnext <- NULL
+    
+    if(debug)browser()
+    for(pp in 1:nrow(pos)){ 
+      
+      #################################################################
+      # GET THE CURRENT SHAPE ATTRIBUTES
+      # todo: check the zoning is working properly
+      cs <- gene[gene$att == "Cross section",]
+      if(verbose){
+        if(nrow(cs) == 1){
+          message(sprintf("Cross section is %s",cs$valtyp[1]))
+        }
+        else{
+          message("Multiple cross sections!")
+        }
+      }
+      active_cs <- cs$valtyp[1]
+      
+      #GET THE CURRENT LENGTH
+      ##TODO: Check that the length is active!
+      ls <- gene[gene$att == "Length",]
+      if(nrow(ls) == 1){
+        
+      }
+      else{
+        message(sprintf("Multiple Lengths! %d rows found",nrow(ls)))
+        #      browser()
+        for(ll in 1:nrow(ls)){
+          message(sprintf("%d: Att = %s, Val = %s",ll,ls$att[ll],ls$valtyp[ll]))
+        }
+      }
+      if(verbose)message(sprintf("Length is %0.2f",as.numeric(ls$valtyp[1])))
+      active_len <- as.numeric(ls$valtyp[1])
+      
+      #GET THE CURRENT DIAMETER
+      ds <- gene[gene$att == "Diameter",]
+      if(verbose)message(sprintf("DIA,  ds has %d rows ",nrow(ds)))
+      ds <- ds[ds$start <= pos$Z[pp] & ds$stop >= pos$Z[pp],] # TODO: Identify which dimension this applies!
+      if(verbose)message(sprintf("STST, ds has %d rows ",nrow(ds)))
+      ds <- ds[ds$dom == max(ds$dom),]
+      if(verbose)message(sprintf("DOM,  ds has %d rows ",nrow(ds)))
+      if(nrow(ds) == 1){
+        if(verbose)message(sprintf("Diameter is %0.2f",as.numeric(ds$valtyp[1])))
+      }
+      else{
+        if(verbose)message("Multiple Diameters!")
+      }
+      active_dia <- as.numeric(ds$valtyp[1])
+      #####################################################################
+      
+      if(verbose)message(sprintf("Parsing position %d: %0.0f,%0.0f, %0.0f",pp,pos$X[pp],pos$Y[pp],pos$Z[pp]))
+      
+      #Create the start block - only do this once
+      if(firstblock){
+        drawCStoSTLv2(pos[pp,],active_cs,active_len*vts,active_dia,"Z",offset,verbose,initonly=T)
+        firstblock<-F
+      }
+      
+      domval <- domInZone(pos[pp,],gene)
+      #browser()
+      
+      active_dir = "N"
+      #if(nrow(dirs)>0){
+      if(!is.na(domval)){
+        dirs <- gene[gene$dom == domval,]
+        
+        #Select the dominant direction:
+        if(verbose)message(sprintf("Max dominance is %0.0f: found %d genes",max(dirs$dom),nrow(dirs)))
+        dirs <- dirs[dirs$dom == max(dirs$dom),]
+        if(verbose)message(sprintf("after dominance pruning, %d genes remain",nrow(dirs)))
+        
+        #Get directions from the non-zero valued attributes
+        dirs <- dirs[as.numeric(dirs$valtyp)!=0,]
+        if(verbose)message(sprintf("Found %d nonzero direction genes, direction is %s",nrow(dirs),dirs$att[1]))
+        if(debug)browser()
+        if(nrow(dirs)>0){
+          pc <- 1
+          for(dd in 1:nrow(dirs)){
+            
+            if(verbose)message(sprintf("Processing active gene %d, name is %s",dd,dirs$att[dd]))
+            
+            #
+            if(debug)
+              browser()
+            
+            if(attDir(dirs$att[dd],"X") & dirs$start[dd]<= pos$X[pp] & dirs$stop[dd] >=  pos$X[pp] ){
+              active_dir <- "X" 
+              vts <- as.numeric(dirs$valtyp[dd])
+
+              posnext <- addpos(pos$X[pp]+(active_len*vts),pos$Y[pp],pos$Z[pp],posnext,seenpos)
+              seenpos <- addpos(pos$X[pp]+(active_len*vts),pos$Y[pp],pos$Z[pp],seenpos)
+              if(verbose)printpos(posnext,"posnext is now:")
+            } 
+            
+            if(attDir(dirs$att[dd],"Y") & dirs$start[dd]<= pos$Y[pp] & dirs$stop[dd] >=  pos$Y[pp] ){
+              active_dir <- "Y" 
+              vts <- as.numeric(dirs$valtyp[dd])
+              
+              posnext <- addpos(pos$X[pp],pos$Y[pp]+(active_len*vts),pos$Z[pp],posnext,seenpos)
+              seenpos <- addpos(pos$X[pp],pos$Y[pp]+(active_len*vts),pos$Z[pp],seenpos)
+              if(verbose)printpos(posnext,"posnext is now:")
+            } 
+            
+            if(attDir(dirs$att[dd],"Z") & dirs$start[dd]<= pos$Z[pp] & dirs$stop[dd] >=  pos$Z[pp] ){
+              active_dir <- "Z" 
+              vts <- as.numeric(dirs$valtyp[dd])
+
+              posnext <- addpos(pos$X[pp],pos$Y[pp],pos$Z[pp]+(active_len*vts),posnext,seenpos)
+              seenpos <- addpos(pos$X[pp],pos$Y[pp],pos$Z[pp]+(active_len*vts),seenpos)
+              if(verbose)printpos(posnext,"posnext is now:")
+            } 
+            if(verbose)message(sprintf("Active Direction is %s",active_dir))
+            
+            #Draw what we have
+            #draw_gene_to_stl(pos,active_cs,active_len,active_dia)
+            if(active_dir != "N"){
+              if(verbose)message(sprintf("Drawing a segment at pos %0.0f,%0.0f,%0.0f. active_len=%0.0f, vts=%0.0f",
+                              pos$X[pp],pos$Y[pp],pos$Z[pp],active_len,vts))
+              #message(sprintf("Active dia is %f * %f/5",active_dia,pos$X[pp]))
+              
+              ix <- min(pos$X[pp]+1,100)
+              iy <- min((40-pos$Y[pp])+1,40)
+              
+              if(img[iy,ix,1]<0.999)
+                drawCStoSTLv2(pos[pp,],active_cs,active_len*vts,active_dia*((1-img[iy,ix,1])*3),active_dir,offset,verbose)
+            }
+          }
+        }
+      }
+    }
+    
+    #if(active_dir == "N"){
+    if(is.null(posnext)){
+      if(debug)browser()
+      if(verbose)message("No active positions to parse!")
+      break
+    }
+    pos <- posnext
+    
+    # Limit infinite runs
+    if(iterations > runlim){
+      if(debug)browser()
+      message("finished (iterations > runlim)")
+      running<-F
+    }
+    iterations <- iterations + 1
+    
+    if(verbose)message(sprintf("Running is %d, iterations = %d, runlim = %d\n",running,iterations,runlim))
+  }
+  
+  if(solo){
+    cat("endsolid Exported from Blender-2.80 (sub 75)\n")
+    sink()
+  }
+  
+  #create a return data object
+  pdata <- list()
+  pdata$iterations <- iterations
+  pdata$positions <- seenpos
+
+##########  
+# FUNCTION RETURNS:  
+    
+#return(pdata)
+#}
+###########
+
+
+
+```
+
+this code parses the shaded image to give:
+
+```{r echo=FALSE}
+plot(NA,axes=F,xlim=c(0,100),ylim=c(0,40),xlab="",ylab="")
+sf <- readPNG("../notebooks/bridgestl1.png")
+
+rasterImage(sf, 1, 1, 100, 40)
+```
+
+
+So, the basic principle of deriving a shape from a combination of hox-like gradients and build grammars is proven. We now need to go on to put this into an evolutionary context. Because CPPNs are based on nueral networks, we also need to add that to the mix. Let's do that first. 
+
+
+# Exploring neural nets in R
+
+The work above used a hand-drawn image of the weights. The next step is to construct an evolvable neural network that does the same job, and then to look at encoding all this on a genome. 
+
+
+So, the first thing is to create and train a neural network that does this. 
+We'll follow approximately the tutorial at  https://datascienceplus.com/neuralnet-train-and-test-neural-networks-using-r/ but try to generate the bridge image instead of the example in the tutorial. 
+
+```{r include=FALSE}
+require("neuralnet")
+```
+
+
+## The dataset
+
+We are going to use the X,Y and intensity values of the training image to do this. 
+
+```{r makenndata}
+img <- imgin
+d = dim(img)
+yv = seq(1,d[1])
+xv = seq(1,d[2])
+ds1 <- expand.grid(x=xv,y=yv)
+ds1 <- data.frame(x=ds1$x,y=ds1$y)
+ds1$i = 0
+
+for (x in 1:max(ds1$x)){
+  for(y in 1:max(ds1$y)){
+    idx <- ((y-1)*max(ds1$x))+x
+    
+    ds1$i[ds1$x==x & ds1$y==y] <- img[y,x,1]
+    
+  }
+}
+
+# now make train and test datasets
+
+index <- sample(1:nrow(ds1),round(0.1*nrow(ds1)))
+train <- ds1[index,]
+test <- ds1[-index,]
+
+```
+
+
+Let's make sure we can write that back as an image in a chunk or two! For now, let's train a neural network to produce an image. Unfortunately, the `neuralnet` function doesn't always return a plottable object of class `nn` (the weights matrix is sometimes missing), so we have to iterate until we get a training phase that works like this: 
+
+```{r nn1, cache=T}
+require(neuralnet)
+index <- sample(1:nrow(ds1),round(0.5*nrow(ds1)))
+train <- ds1[index,]
+ntries = 10
+n=0
+while(T){
+  nn5by3 <- neuralnet("i ~ x + y", data=train, hidden = c(5,3), linear.output = T,threshold = 0.15,rep = 1)
+  if(!is.null(nn5by3$weights)){
+    message(sprintf("Found result at try %d",n))
+    break
+  }
+  if(n>=ntries)
+    break
+  n=n+1
+  message(sprintf("finished try %d",n))
+}
+```
+
+To get an idea how well the neural network is doing, we can plot the input vs output values for the x,y intensity values:
+
+
+```{r plotclass, echo=FALSE, fig.height=3, fig.width=10}
+par(mfrow=c(1,3))
+
+pr.nn <- compute(nn5by3,ds1)
+plot(x=ds1$i,y=pr.nn$net.result,xlab="Image intensity",ylab="NN output at x,y")
+
+imgout <- img
+
+pri <- pr.nn$net.result
+#pri <- (pri - min(pri))/(max(pri)-min(pri))
+imgout <- img
+for (x in 1:max(ds1$x)){
+  for(y in 1:max(ds1$y)){
+    idx <- ((x-1)*max(ds1$y))+y
+    
+    val <- pri[ds1$x == x & ds1$y == y]
+    
+    val <- max(val,0)
+    val <- min(val,1)
+    
+    imgout[y,x,] <- val
+  }
+}
+
+#plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,xlab="X",ylab="Y")
+#rasterImage(imgout, 1, 1, 100, 40)
+
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,main="Neural Image")
+rasterImage(imgout, 1, 1, 100, 40)
+
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,main = "Original")
+rasterImage(imgin, 1, 1, 100, 40)
+
+
+```
+
+Because we are using a pre-existing package, we can take advantage of the visualisation tools and see what the network looks like (unfortunately this plot doesn't play nicely if you want to put it with other plots in a table): 
+
+
+```{r plotnn, echo=FALSE}
+#class(nn) <- "nn"
+plot(nn5by3,rep="best")
+```
+
+The neuralnet R class holds a lot of data that we won't need. Let's see which bits of the nn object are needed to do recall - then we might thinking about adapting this package to do a CPNN. I worked this out using the following code, which I repeated until the 'required' list held all the elements needed for plot to work: 
+
+
+```{r getrequired, echo=T,eval=F}
+required = c(4,6,7,11)
+#required = c()
+
+par(mfrow=c(4,3))
+
+for(ii in 1:length(nn5by3)){
+  
+  if(! ii %in% required){
+    #message(sprintf("removing entry %d",ii))
+    nmin <- nn[-ii] 
+    pr.nmin <- compute(nmin,ds1)
+    plot(nn5by3,rep="best")
+  }
+}
+
+```
+
+
+
+OK - it looks like we might be able to do this. Let's make sure we can 'train' a `neuralnet` object from a genome, then we can build the CPPN funcionality on top. The only thing we might need to change is the activation function set. Below, we reproduce the figure above, but only use the bits of the `nn` class that we need: 
+
+
+```{r checksmallworks,eval=T, echo=F, fig.height=3, fig.width=10, include=T}
+
+required = c(4,6,7,11)
+nnsml <- nn5by3[required]
+
+par(mfrow=c(1,3))
+
+pr.nn <- compute(nnsml,ds1)
+plot(x=ds1$i,y=pr.nn$net.result)
+
+imgout <- img
+
+pri <- pr.nn$net.result
+#pri <- (pri - min(pri))/(max(pri)-min(pri))
+imgout <- img
+for (x in 1:max(ds1$x)){
+  for(y in 1:max(ds1$y)){
+    idx <- ((x-1)*max(ds1$y))+y
+    
+    #if(idx > 45 )break
+    #message(sprintf("X is %d, y is %d, idx = %d",x,y,idx))
+    #ds1$i[idx] <- img[y,x,1]
+    
+    val <- pri[ds1$x == x & ds1$y == y]
+    
+    val <- max(val,0)
+    val <- min(val,1)
+    
+    imgout[y,x,] <- val
+  }
+}
+
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,main="Neural Image")
+rasterImage(imgout, 1, 1, 100, 40)
+
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,main = "Original")
+rasterImage(imgin, 1, 1, 100, 40)
+
+
+```
+
+
+# CPPN framework from `neuralnet` objects
+
+To do "neuroevolution", the first thing we need to be able to do is generate a very simple neural network - we can't remove the intercept node, but we can set its weight to zero: 
+
+```{r}
+require(neuralnet)
+index <- sample(1:nrow(ds1),round(0.5*nrow(ds1)))
+train <- ds1[index,]
+nn <- neuralnet("i ~ x + y", data=train,hidden=0,  linear.output = T,threshold = 0.1,rep=1,startweights = c(0,1,1),stepmax = 2000)
+required = c(4,6,7,11)
+nnfull <- nn
+nnfull$weights[[1]][[1]][[1]] <- 0
+plot(nnfull,rep="best")
+```
+
+
+## Making `plot` work for sml neuralnets
+
+If we want to plot the "reduced" neural net, we currently have to load list entry 14, called `result.matrix` to get the plots to work - this is because some values in the result matrix are written on the plot - that's an easy fix, but for now, let's just show that we can make one; 
+
+```{r echo=FALSE}
+#trim down the full neural net
+nnf <- nnfull[c(required,14)]
+
+#set the class attribute so the right plot is called
+class(nnf) <- "nn"
+
+#example of how to set the result.matrix stuff: 
+
+nnf$result.matrix[,1]<- 22
+nnf$result.matrix["error",1] <- 9.3
+
+plot(nnf,rep="best")
+```
+
+
+
+## Understanding the weights matrix. 
+
+To do this, let's revisit the first neural network we did, with two hidden layers of 5 and 3 nodes, called `nn5by3`. 
+
+```{r}
+str(nn5by3$weights)
+```
+
+This is a list of 3 lists - each list is a layer in the network - lets look at the first one:
+
+```{r}
+nn5by3$weights[[1]][[1]]
+```
+
+This is a pretty simple representation, which is nice because it will be easy to put on a genome. Some points though:
+
+- The first row is the weights from the *intercept* neuron. These aren't mentioned in NEAT - we can set them to zero though!
+- the second and third rows are the weights on the x and y coordinates respectively. 
+
+## Fitting in with the NEAT representation
+
+We can represent a genome as a list pretty easily which is nice. We need a *node list* and a *connection list*, which holds the weights. Nodes can be input, output or hidden - only the hidden nodes can mutate. 
+
+Let's start to build a genome as a list of lists then (we might turn this into a
+stclass later). Let's start with that simple neural network from above: 
+
+```{r}
+gene1 <- list()
+gene1$inputs <- list("x","y")
+gene1$outputs <- list("i")
+gene1$hidden <- list(c(1,2))
+gene1$conns <- list()
+# Now make the connections
+gene1$conns[[1]] <- list(nin="x",nout="1",weight=0.45)
+gene1$conns[[2]] <- list(nin="y",nout="1",weight=0.45)
+gene1$conns[[3]] <- list(nin="1",nout="2",weight=1)
+gene1$conns[[4]] <- list(nin="1",nout="i",weight=1)
+gene1$conns[[5]] <- list(nin="x",nout="2",weight=1)
+gene1$conns[[6]] <- list(nin="2",nout="i",weight=1)
+```
+
+OK, I see a problem immediately - it's to do with the way nodes are added in NEAT - there is no concept of a layer - which means the layout of any sort of complex network is *not* going to work directly with this function. Bah!
+
+I guess I need to look more closely at how the activation works - maybe then I can make use of the neuralnet functions, but adapt them into my own package. So, I need to break down how the `predict` function works, and maybe use bits of that. This'll be a bit more work, but we'll get there!
+
+In fact, the `predict` function is really pretty simple! So it shouldn't take long to write as we go along with the gene structure. 
+
+In this light, the best approach is probably to start by training the weights on a fixed network, then look at varying the edges, and finally to look at varying the nodes. 
+
+----
+
+# Evaluating an initial genome
+
+I think it's going to be useful to figure out how to *draw* graphs of these networks, as well as how to plot them - because we'll need to figure out the processing anyway, and it'll be useful to see if our graphs match. So let's start that process now. The gene1 object above has 2 layers, because node 1 feeds into node 2. The algorithm looks like: 
+
+- give all hidden nodes `parsed` value FALSE
+- set layer number to 1
+- while (there are nodes with `!parsed`):
+  - find N, nodes that *only* have upstream nodes from the input nodes OR parsed nodes (there will be zero parsed nodes on first iteration)
+  - set `N$layer` to 1, and `N$parsed` to TRUE
+  
+I'll start a new R file `neat.R` and put all the functions in there until it gets too unwieldy.. I should probably also start to write tests for this as it looks like it might be the basis of a paper
+
+## First pass: checking the parsing routine
+
+Let's create a simple data structure that handles the network connectivity. It' based on the `gene1` structure at the moment:
+
+```{r}
+source("../shapevol1/R/neat.R")
+
+
+conns <- data.frame(matrix(unlist(gene1$conns), nrow=length(gene1$conns), byrow=T),stringsAsFactors = F)
+colnames(conns) <- c("nin","nout","w")
+conns$w <- as.numeric(conns$w)
+inputnames <- c("x","y")
+outputnames <- c("i")
+hiddennames <- c("1","2")
+pconns <- calclayers(conns,inputnames,outputnames)
+
+tconns <- data.frame(nin = c("x","y","1","1","x","2","x","y","3"),nout = c("1","1","2","i","2","i","3","3","i"),w=c(0.45,0.45,1,1,1,1,0.2,0.2,0.2),stringsAsFactors = F)
+
+#message("\nPARSING TCONNS\n")
+
+pc2 <- calclayers(tconns,inputnames,outputnames,verbose = F)
+
+```
+
+Let's see if we can plot this network now
+
+```{r}
+source("../shapevol1/R/neat.R")
+par(mfrow=c(1,2))
+plot.neat(pconns,inputnames,outputnames)
+plot.neat(pc2,inputnames,outputnames)
+
+```
+
+
+OK, we can plot it, now we need to parse some inputs. This is worth writing as a test, so I'll do that and give examples here. But it's worth repeating what the components are. A neural network is pretty simple. for each node, sum the inputs and put the result through an activation function. Then pass the result of the activation function to the output. Cascade these calculations from the inputs to the outputs and whatever value reaches the output node is the result. 
+
+
+```{r}
+source("../shapevol1/R/neat.R")
+tconns <- data.frame(nin = c("x","y","1","1","x","2"),nout = c("1","1","2","i","2","i"),w=c(0.45,0.35,0.1,0.9,0.2,0.4),stringsAsFactors = F)
+tnodes <- data.frame(node = c("1","2","i"), parsed = c(T,T,T), layer= c(1,2,3), rank= c(1,1,1),stringsAsFactors = F)
+inputnames <- c("x","y")
+
+tpn <- list()
+tpn$conns <- tconns
+tpn$nodes <- tnodes
+tpn$inodes <- inputnames
+
+xval <- 3
+yval <- 4
+
+nnout <- proc.neat(tpn,c(xval,yval),verbose = F)
+
+```
+
+Great - a version of the above code is now in the tests, and it works (we may need to revisit with a more complex network later, but it's fine for now)
+
+So we have the following to do before we can iterate: 
+
+- initialize a population
+- evaluate 
+- mutate winners
+
+# Initializing a population. 
+
+Let's start with a working population of 5, then scaling it up should be easy. Here we'll make the nn and then evaluate it
+
+```{r fig.height=10, fig.width=10}
+source("../shapevol1/R/neat.R")
+popsize <- 20
+ngen <- 5
+
+error <- vector(length = popsize)
+
+popn <- list()
+inodes <- c("x","y")
+onodes <- c("i")
+
+par(mfrow=c(5,4))
+
+
+ploteval <- function(net,im){
+  
+  imgout <- im
+  
+  err <- 0
+  
+  for (x in 1:max(ds1$x)){
+    for(y in 1:max(ds1$y)){
+      idx <- ((x-1)*max(ds1$y))+y
+      
+      #val <- pri[ds1$x == x & ds1$y == y]
+      val <- proc.neat(popn[[pp]],c(x,y),summarize=T,verbose = F)
+      
+      val <- max(val,0)
+      val <- min(val,1)
+      
+      imgout[y,x,] <- val
+      
+      err <- err + (abs(imgout[y,x,1]-imgin[y,x,1]))
+    }
+  }
+  minval <- min(imgout)
+  maxval <- max(imgout)
+  imgout <- 0.9*(imgout-minval)/(maxval-minval)
+  
+  
+  plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,main=sprintf("error = %f",err),xlab = sprintf("error = %f",err))
+  rasterImage(imgout, 1, 1, 100, 40)
+  
+  return(err)
+}
+
+
+for(pp in 1:popsize){
+  popn[[pp]] <- init.neat(inodes)
+  error[pp] <- ploteval(popn[[pp]],imgin)
+}
+
+```
+
+
+
+
+
+
+
+
+# Selecting 'winners' in a generation
+
+We've calculated the error on each individual in the above
+```{r}
+#dummy function for now
+mut.net <- function(net,noderate=0.0,wtstep= 0.05){
+  
+  mp <- runif(1,0,1)
+  if(mp<noderate){            
+    message(sprintf("  node mutation (mp = %f, noderate = %f, midx=%d, w = %f)",mp,noderate,midx,net$conns$w[midx])) 
+  }
+  else{
+    midx <- sample(1:length(net$conns$w),size=1)
+    message(sprintf("  WEIGHT mutation (mp = %f, noderate = %f, midx=%d, w = %f)",mp,noderate,midx,net$conns$w[midx]))       
+    net$conns$w[midx] <- max(0,min(1,net$conns$w[midx]+sample(c(wtstep,-wtstep),1)))
+  }
+  
+  return(net)
+}
+
+es <- error
+elites <- 3
+newpop <- list()
+npn <- 0
+erank <- order(es,decreasing = F)
+
+for(pp in 1:elites){
+  newpop[[pp]]<-popn[[erank[pp]]]
+  #es[erank[pp]]<- NA
+}
+#erank <- order(es)
+#todo: we should never have a min value...
+sw <- 1-(es-min(es,na.rm = T))/(max(es,na.rm = T)-min(es,na.rm = T))
+#sw <- max(0,sw)
+
+en <- seq(1:length(popn))
+
+errnew <- vector(length=length(popn))
+
+# Now do the tournament: 
+for(pp in (elites+1):length(popn)){
+  tidx <- sample(en[!is.na(es)],2,replace=F,prob = sw[!is.na(es)])
+  
+  message(sprintf("%d: tidx vals are %d(p=%0.3f,val=%0.3f) and %d(p=%0.3f,val=%0.3f)",pp,tidx[1],sw[tidx[1]],es[tidx[1]],tidx[2],sw[tidx[2]],es[tidx[2]]))
+  if(es[tidx[1]]<es[tidx[2]]){
+    newp <- popn[[tidx[1]]]
+  }
+  else{
+    newp <- popn[[tidx[2]]]
+  }
+  
+  newpop[[pp]] <- mut.net(newp)
+  errnew[pp] <- ploteval(newpop[[pp]],imgin)
+}
+
+
+```
+
+
+
+
+
+
+
+```{r, eval=T, echo=F, fig.height=3, fig.width=10, include=T}
+#  This is going to be a *very* poor representation of the bridge - but that's how CPPNs are initialised, so we'll go with it for now
+
+par(mfrow=c(1,3))
+
+#pr.nn <- compute(nn,ds1)
+pr.nn <- predict(nnfull,ds1,all.units=T)
+plot(x=ds1$i,y=pr.nn[[2]],xlim=c(0,1),ylim=c(0,1))
+
+imgout <- img
+
+pri <- pr.nn[[2]]
+#pri <- (pri - min(pri))/(max(pri)-min(pri))
+imgout <- img
+for (x in 1:max(ds1$x)){
+  for(y in 1:max(ds1$y)){
+    idx <- ((x-1)*max(ds1$y))+y
+    
+    val <- pri[ds1$x == x & ds1$y == y]
+    
+    val <- max(val,0)
+    val <- min(val,1)
+    
+    imgout[y,x,] <- val
+  }
+}
+
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1)
+rasterImage(imgout, 1, 1, 100, 40)
+
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1)
+rasterImage(imgin, 1, 1, 100, 40)
+
+
+```
+
+
+
+
+# Building a working `nn` from scratch: 
+
+
+
+```{r}
+
+# this is based on convert_functions.R in the neuralnet package
+makefn <- function(){
+  
+  fct <- function(x) {
+    1/(1 + exp(-x))
+  }
+  attr(fct, "type") <- "logistic"
+  deriv.fct <- function(x) {
+    x * (1 - x)
+  }
+  return(list(fct = fct, deriv.fct = deriv.fct))
+}
+
+
+makenn <- function(vin,vresp,actfn=NULL){
+  nn <- list()
+  nn$model.list <- list()
+  nn$model.list$response <- vresp
+  nn$model.list$variables <- vin
+  cf <- makefn()
+  nn$act.fct <- cf$fct
+  nn$linear.output=T
+ 
+  return(nn) 
+}
+  
+madenn <- makenn(vin=c("x","y"),vresp=c("i"))  
+  
+  
+```
+
+
+
+
+# Evolving experiment: 
+
+ok - so here's what we can do: 
+
+- Create two images of bridges, one for each load
+- Create genomes which initialise a bunch of random nns with no hidden layers - set the intercept to zero if you like
+- Inputs are X,Y, and 'L' : the load value
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -30,20 +30,36 @@ checklimits <- function(gene,rx="X",pos){
 }
 
 
+#' Find the dominant attributes at a given position
+#' 
+#' @param pos a data frame with a single row and fields X, Y and Z
+#' @param group a group of genes
+#' @return dominance value as an integer
+#' @export
+#' @examples
+#' domgene <- domInZone(data.frame(X=0,Y=1,Z=2),genegroup1)
+domAttInZone <- function(pos,att,group,verbose=F){
+  
+  atset <- group[group$att == att,]
+  
+  if(verbose)message(sprintf("Found %d %s attributes",nrow(atset),att))
+  
+  return (4)
+}
+
 
 
 #' Find the dominant gene at a given position
 #' 
 #' @param pos a data frame with a single row and fields X, Y and Z
 #' @param group a group of genes
-#' @return dominance value as an integer
+#' @param verbose messages or not
+#' @return dominance values as a vector of integers for CS, length and diameter
 #' @examples
 #' domgene <- domInZone(data.frame(X=0,Y=1,Z=2),genegroup1)
 domInZone <- function(pos,group,verbose=F){
   
   #We only want (for now) The list of dominances for *position* variables
-  #group <- group[str_detect(group$att,".(X|Y|Z)"),]
-  #group <- group[attDir(group$att,"X") | attDir(group$att,"Y") | attDir(group$att,"Z"),]
   gx <- group[str_sub(group$att,str_length(group$att),str_length(group$att)) == "X",]
   gy <- group[str_sub(group$att,str_length(group$att),str_length(group$att)) == "Y",]
   gz <- group[str_sub(group$att,str_length(group$att),str_length(group$att)) == "Z",]
@@ -51,9 +67,11 @@ domInZone <- function(pos,group,verbose=F){
   
   #Get the list of dominances: 
   doms <- unique(group$dom)
+  
+  #Sort them so we can find the highest
   doms <- doms[order(doms,decreasing = T)]
   
-  
+  #iterate until we find a rule that's in-zone
   for(dd in doms){
     #browser()
     inzone <- T
@@ -214,7 +232,6 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),r
             if(debug)
               browser()
             
-            #if(str_detect(dirs$att[dd],"^X") & dirs$start[dd]<= pos$X[pp] & dirs$stop[dd] >=  pos$X[pp] ){
             if(attDir(dirs$att[dd],"X") & dirs$start[dd]<= pos$X[pp] & dirs$stop[dd] >=  pos$X[pp] ){
               active_dir <- "X" 
               vts <- as.numeric(dirs$valtyp[dd])
@@ -223,20 +240,19 @@ genetostlfile4 <- function(fn="shape.stl",gene,pos=spos(0,0,0),offset=c(0,0,0),r
               seenpos <- addpos(pos$X[pp]+(active_len*vts),pos$Y[pp],pos$Z[pp],seenpos)
               if(verbose)printpos(posnext,"posnext is now:")
             } 
-            #if(str_detect(dirs$att[dd],"^Y") & dirs$start[dd]<= pos$Y[pp] & dirs$stop[dd] >=  pos$Y[pp]){
+            
             if(attDir(dirs$att[dd],"Y") & dirs$start[dd]<= pos$Y[pp] & dirs$stop[dd] >=  pos$Y[pp] ){
               active_dir <- "Y" 
               vts <- as.numeric(dirs$valtyp[dd])
-              ##posnext[2] <-posnext[2]+active_len
+              
               posnext <- addpos(pos$X[pp],pos$Y[pp]+(active_len*vts),pos$Z[pp],posnext,seenpos)
               seenpos <- addpos(pos$X[pp],pos$Y[pp]+(active_len*vts),pos$Z[pp],seenpos)
               if(verbose)printpos(posnext,"posnext is now:")
             } 
-            #if(str_detect(dirs$att[dd],"^Z") & dirs$start[dd]<= pos$Z[pp] & dirs$stop[dd] >= pos$Z[pp]){
+            
             if(attDir(dirs$att[dd],"Z") & dirs$start[dd]<= pos$Z[pp] & dirs$stop[dd] >=  pos$Z[pp] ){
               active_dir <- "Z" 
               vts <- as.numeric(dirs$valtyp[dd])
-              #posnext[3] <-posnext[3]+active_len
 
               posnext <- addpos(pos$X[pp],pos$Y[pp],pos$Z[pp]+(active_len*vts),posnext,seenpos)
               seenpos <- addpos(pos$X[pp],pos$Y[pp],pos$Z[pp]+(active_len*vts),seenpos)

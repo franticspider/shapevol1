@@ -15,15 +15,15 @@ knitr::opts_chunk$set(echo = TRUE)
 The test shape is pretty simple: start at position 0,0,0 and branch out in all six possible directions. Then see which slicer has problems with the result. 
 
 ```{r echo=TRUE, message=FALSE}
-
+require(shapevol1)
 require(stringr)
 source("../shapevol1/R/sgene.R")
 source("../shapevol1/R/drawCStoSTL.R")
-source("../shapevol1/R/genetostl4.R")
+source("../shapevol1/R/genetostl.R")
 
 
 gene01n <- sgene("Cross section","Square",status = T,start=-40,stop=0,dom=2)
-gene02n <- sgene("Length",       5       ,status = T,start=-40,stop=0,dom=2)
+gene02n <- sgene("Length",       7       ,status = T,start=-40,stop=0,dom=2)
 gene03n <- sgene("Diameter",     1.3       ,status = T,start=-40,stop=0,dom=2)
 group1n <- rbind(gene01n,gene02n,gene03n)
 
@@ -55,3 +55,84 @@ geneset <- rbind(group1n,group1,group2)
 
 pointset <- genetostlfile4   ("~/Desktop/stl/testn.stl",geneset,pos=spos(0, 0,0),runlim=40,verbose = T)
 ```
+
+
+Let's see if we can test `domAttInZone()` on its own given the genes above - that'll be easier to do than running a whole GPmapping. 
+
+```{r}
+source("../shapevol1/R/genetostl4.R")
+domAttInZone(pos = c(0,0,0,0), group = geneset, att = "Length", verbose = T)
+```
+
+
+Bah, this isn't gonna work. It's obvious that the strict field structure is struggling to handle 3D zoning in this way. Each shape attribute must have an X,Y,Z field of activity which is hard/lengthy to code for, so each rule would have to be coded for three times in order to define this zone using the current criteria. We need a better way of setting the starting and stopping conditions 
+
+# Proposed solution
+
+## Constraints
+
+- Development must be fully deterministic
+- Genome should be fairly compact, particularly w.r.t. recursive structures. 
+- Need a way of feeding in environmental constraints such as load etc. 
+- Emphasis on strong physical shapes like triangles
+- vector- not axis- based, so we can head off in directions that external forces require as closely as possible. 
+
+
+## Ideas: 
+
+- A 'looser' collection of rules that fire based on different criteria
+- Emphasis on *inhibition* as well as expression - the dominance concept loosely did this, but it was clumsy
+- Gene repurposing would be good to generate innovative solutions
+- Better to evolve the slicer files than the stl files?- more precise interesting pathways? Or a 2-stage evolutionary process? Or a 2-phase system, where we evolve shape, but then evolve it's g-code representation. Allows finer-grained use of materials. 
+- In g-code, once a condition is set, it stays active until it is turned off *or* overridden - could we do the same??
+- Look more closely at hox genes 
+    - *Spatial colinearity* - sequence of hox genes is the same as front to back body plan
+    - *Establishes co-ordinate frame* - so changes to this will change the whole plan, but *consistently*
+    - Link to GRNs (so read Andy and Martin's work on this)
+    - body coordinate frame is then used to run a pattern of suppression of defaults
+    - antennapedia idea: legs are modified antennae, not the other way around
+    - Separates the control issue from the build: lay down gradients first, then build through this with the grammar
+    - We can specify the whole volume before we grow into it, instead of 
+    
+## Plan
+
+
+
+
+- Gene is expressed by itearatively updating three processes:
+  - Update the *coordinate system* - these are the hox genes and handle the body plan, controlling the resolution and 
+  compass of the compartments in the  system. 
+  - Update the *gradients* - the growth hormones in the system
+  - Update the *scaffold* - the set of growth points currently under consideration
+  - Update the *physical deposit* - by laying down new materails
+    
+Note that updates have spatial and temporal properties - some will fire in different regions of the space, some will fire  at different times during development. 
+
+- It's worth pointing out how these relate to Singh's categorisation of generative algorithms: 
+  - CA/SI - involve updating gradients, but in a strictly *local* fashion
+  - GA - acts externally to the generative process, 
+  - GD - is, well, this really
+  - LS/SG - is the updating of the scaffold/physical deposit
+
+
+
+
+Stringmol observation is that the phenotype is "extended" into the community - its fitness comes from its role in the community and how others act upone it. Note that in other systems the genotype is part of the phenotype - and the same conditions apply - its fitness depends upon how it is read by the community (esp the ribosome). Thus if you break this contract, you close the system. But if you keep it, the route to updating/evolving the way the genotype is read *and therefore what it encodes* is open. Our systems are 'pre-cambrian', but we are basing them on holocene biology
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

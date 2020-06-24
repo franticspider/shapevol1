@@ -53,7 +53,6 @@ geneset <- rbind(group1,group2,group3)
 
 
 test_that("mutations occur within the correct geneset rows",{
-  
   #test that either end of the mutatable genes is accessible:
   expect_equal(getrowno(1,1),4)
   expect_equal(getrowno(1,3),6)
@@ -67,7 +66,8 @@ test_that("mutations occur within the correct geneset rows",{
 
 
 test_that("specified mutations occur at the correct place",{
-
+  
+  skip("New structure has beein implemented")
   #valtyp mutation
   mutant <- domut(8,3,1,geneset)
   expect_equal(mutant$valtyp[27],0)
