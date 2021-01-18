@@ -47,6 +47,14 @@ test_that("nn parses input values correctly",{
 })
 
 
+test_that("nn parses hidden layers correctly",{
+  
+  
+  
+})
+
+
+
 
 test_that("hidden nodes can be set using getHnodes", {
   hn <- getHnodes(tconns,inputnames)

@@ -1,6 +1,7 @@
 context("Mutation of gene sets")
 
-#Define a geneset for testing mutations:  gene01 <- sgene("Cross section","Square",status = T,start=-40,stop=40,dom=1)
+#Define a geneset for testing mutations:  
+gene01 <- sgene("Cross section","Square",status = T,start=-40,stop=40,dom=1)
 gene02 <- sgene("Length",       5       ,status = T,start=-40,stop=40,dom=1)
 gene03 <- sgene("Diameter",     1       ,status = T,start=-40,stop=40,dom=0)
 group1 <- rbind(gene01,gene02,gene03)

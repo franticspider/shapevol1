@@ -1,0 +1,94 @@
+---
+title: "ACO for Genevol"
+author: "Simon Hickinbotham"
+date: "18/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Generative evolution tends to do selction with a 'light touch', using human-in-the-loop techniques, or with very simple fitness functions. The reason for this is that it is challenging to construct a framework within which designs can evolve without a) solving the problem before it is presented to the algorithm or b) constraining the design space so much that there is little room to discover new shapes. For example, consider the challenge of building a bridge with generative evolution. 
+
+
+# Ant colony
+
+Just to get started, let's see if we can make a colony of random ants: 
+
+```{r sampleant, fig.show='animate', fig.width=14, fig.height=4, cache=FALSE, interval=0.05, aniopts="controls,loop"}
+
+randinrange<-function(val,rmin,rmax){
+  
+  newval <- max(0,min(rmax,val + round(runif(1,min=-1,max=1))))
+  
+  #newval[newval>rmax]<-rmax
+  #newval[newval<rmin]<-rmin
+  
+  return(newval)
+}
+
+gcols = gray.colors(100,?.)
+nants = 100
+ants = data.frame(x=floor(runif(nants,min=1,max=130)),
+                  y=floor(runif(nants,min=1,max=100)),stringsAsFactors = F)
+
+#Take care: row is x axis! potentially confusing!
+ph <- matrix(nrow=130,ncol=100)
+ph[] <- 0
+antph <- 100
+phdecay <- 5
+
+
+for(i in 1:500){
+  par(mfrow = c(1,2))
+  #ph[] <- max(ph[],0)
+  plot(NA,xlim=c(0,130),ylim=c(0,100))
+  for(xx in 1:130){
+    for(yy in 1:100){
+      if(ph[xx,yy]>0)
+        #points(xx,yy,col="red",pch=15)
+        rect(xleft=xx,ybottom=yy,xright = xx+1,ytop=yy+1,border = NA,col=gcols[min(100,ph[xx,yy])])
+    }
+  }
+  
+  plot(ants,xlim=c(0,130),ylim=c(0,100),pch=20,cex=0.5)
+  for(aa in 1:nrow(ants)){
+    #ants$x[aa] <- randinrange(ants$x[aa],1,130)
+    #ants$y[aa] <- randinrange(ants$y[aa],1,100)
+    
+    #for debugging: 
+    ants$x[aa] <- ((ants$x[aa]+1)%%130)
+    ants$y[aa] <- ((ants$y[aa]+1)%%100)
+    
+    ph[ants$x[aa],ants$y[aa]]<-min(100,ph[ants$x[aa],ants$y[aa]]+antph)
+  }
+  
+  ph<-ph-phdecay
+  ph[ph[]<0]<-0
+  #message(sprintf("xrange = %d,%d; yrange=%d,%d",min(ants$x),max(ants$x),min(ants$y),max(ants$y)))
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r sampleani, fig.show='animate', fig.width=4, fig.height=4, cache=FALSE, interval=0.05, aniopts="controls,loop"}
+for (i in 1:50) {
+    plot(x=i/10, y=i/10, xlim=c(0,6), ylim=c(0,6), pch=20, col=palette()[2], cex=5)
+}
+```

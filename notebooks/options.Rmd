@@ -1,0 +1,206 @@
+---
+title: "Avenues of research in Generative Evol"
+author: "Simon Hickinbotham"
+date: "05/01/2021"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Status
+
+Having explored Novelty Search in the CEC paper within the QUB framework, it was clear that a number of points need addressing if we are to make this work: 
+
+1. The growth model is cumbersome
+2. It is difficult to add more fitness parameters to influence the growth
+3. The relationship between where to grow and how to grow is unclear
+4. Growth in one part of the system does not influence growth in another part. 
+
+The strategy then was to try to split these questions in the implementation: use a *gradient* based approach to define where to grow, and a *grammar* based approach to determine how to grow. We then started to look at options for solving how these two approaches could be defined and brought together into a coherent generative growth strategy. 
+
+## Test case: Expressing Grammars on top of a gradient
+
+
+
+```{r spotpixel, echo=FALSE, fig.height=2, fig.width=8, message=FALSE, caption = "figure 1"}
+require(png)
+par(mfrow = c(1,3),mar = c(0,0,0,0),oma=c(0,0,0,0))
+
+
+
+
+imgin <- readPNG("~/Desktop/shapeimg/bridge100x40y.png")
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,axes=F)
+rasterImage(imgin, 1, 1, 100, 40)
+
+
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,axes=F)
+rasterImage(imgin, 1, 1, 100, 40)
+
+for(xx in seq(1,100,5)){
+  for(yy in seq(1,35,5)){
+    if(imgin[40-yy,xx,1]<0.999)
+      points(x = xx, y = yy,pch=19,col="red",cex=0.2+((1-imgin[40-yy,xx,1])*3))
+  }
+}
+
+
+plot(NA,axes=F,xlim=c(0,100),ylim=c(0,40),xlab="",ylab="",asp=1)
+sf <- readPNG("../notebooks/bridgestl1.png")
+
+rasterImage(sf, 1, 1, 100, 40)
+```
+
+The image above shows a proof of concept experiment to start to unpick the relationship between a gradient-based specification of where to grow, and a grammar-based specification of how to grow. The left-hand panel shows a hand-drawn gradient that specifies a bridge shape. The centre panels shows points on the gradient interpreted as a 'weight' on how to grow. In this case, the weight is interpreted as the thickness of the strut. The right hand panel shows how this information can be passed into a shape grammar to construct the bridge. In this case, the shape grammar can be very simple - here it is within the QUB framework: 
+
+```
+gene01 <- sgene("Cross section", "Square", status = T, start=0, stop=100, dom=1 )
+gene02 <- sgene("Length",         5,       status = T, start=0, stop=100, dom=1 )
+gene03 <- sgene("Diameter",       0.3,     status = T, start=0, stop=100, dom=1 )
+gene04 <- sgene("X_1X",           1,       status = T, start=0, stop=100, dom=50)
+gene05 <- sgene("Y_1Y",           1,       status = T, start=0, stop=40,  dom=50)
+gene06 <- sgene("Z_1Z",           1,       status = T, start=0, stop=5,   dom=50)
+```
+
+This is expressed in 6 genes, whereas the table shape in the orignal work (CEC,2020) took 24 genes to describe. There was one extra line in the parsing code that checked the local value of the gradient before expressing the gene. I think this is evidence that the approach has merit: a grammar on top of the gradient was much simpler than even the table shape, and we got a whole bridge out of it. To take this concept further, we need to do three things
+
+- Determine a method for generating the gradient data that describes where to grow
+- Determine a method for generating a structre that follows the gradient in a self-supporting way
+- Identify a way of evolving the inputs to these methods to solve a design problem
+
+
+## Gradient studies: *where* to grow
+
+With the above result in mind, I decided to explore ways of making/evolving a gradient to meet a design spec. So far I've looked at three options: Neural Networks/CPPNs; Wolpert's EvoDevo ideas; and Ant Colony Optimisation
+
+**Neural networks** I did some work on making/learning the bridge gradient shape in figure 1. It's fairly easy to get traditional NNs to generate these gradients (I've done that), and I spent some time trying to evolve a NN to represent the bridge gradient shape. I didn't finish that off, becuase I realised there are two problems: firstly, it is difficult to say what the inputs to learning an appropriate pattern are unless you've already drawn the pattern! secondly, although CPNNs produce interesting shapes using human-in-the-loop selection, there is no mechanism for relating two x,y,z points in the physical space. So if we have a beam or a solid voxel at a particular position in the space, it is difficult to use this information to influence the other parts via the neural network because the x,y,z points are the *inputs* - they can't influence each other, even indirectly, because of the way that the NN fires to evaluate the solid regions. Of course, this is exactly the sort of NN that deep learning is about, but I think this is why evaluation of Neural-based generative techniques tends to be at the "gestalt" level after the entire phenotype has been expressed. This path is well-trodden in the literature but the fundamental issue is not resolved. 
+
+Although this is a negative result, it is an important one, and it highlights how CPPNs (one of the leading candidate techniques in the field) may struggle to capture a design requirement. Perhaps the best way of thinking about this is that inherently, NNs are *classifiers* - they take inputs and produce outputs, and the problem is that it becomes difficult to capture, represent and exploit the spatial and physical correlation between input vectors. I think if we were to go down the NN route we'd have to pose the construction problem as one of "action selection", which would be relatively to do once the design was finised, but much more difficult if we want to cast the problem in an evolutionary framework.
+
+Ideally then, the gradient representation should arise as the *result* of a design brief. For the bridge problem, one could imagine a specification that set the width and height of the void to be spanned, and the position of the foundations, as shown in the image below. 
+
+```{r loadimage2, echo=FALSE, fig.height=2, fig.width=3, message=FALSE}
+require(png)
+imgin <- readPNG("~/Desktop/shapeimg/bridge100x40yspec.png")
+par(mar = c(0,0,0,0),oma=c(0,0,0,0))
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,xlab="",ylab="",axes=F)
+rasterImage(imgin, 1, 1, 100, 40)
+```
+
+Here, the blue regions indicate where the foundations of the bridge will be and the red zone indicates the void that the bridge should cross. The algorithm would then be required to determine where to grow by laying down a gradient, which the subsequent construction routine would use as a guide. 
+
+A neural network solution would have to take these as inputs, and generate appropriate gradient values at each x,y,z position to layout the span of the bridge, and it seems that there is no straightforward way of encoding this information, so I'm thinking about two alternative ways to achieve this: 
+
+**Ant Colony Optimisation (ACO)** I think it is striking how similar the problem of  finding a zone in which to build a connecting structure between the two foundations is to ACO. The 'ants' would lay down pheromones between foundations that would coalesce into the gradient that would be used to guide the buiding of the structure. Beyond the superficial similarities, I think it is also feasible that the pheromone pathways could be updated *whilst the structure is being built* - and in this way we'd have a responsive construction regime. To my mind, these challenges are more easily surmountable than the neural network approach discussed above. 
+
+**Evodevo approach** An alternative to the ACO solution just proposed is to develop related evodevo approaches, which have their origins in Wolpert's work and the French Flag problem. Here, sheets or blocks of primitive "undifferentiated" cells (I suppose we could call them stem cells these days) develop a range of different hormone gradients to establish a coordinate system before the cells specialise - in the French flag problem the specialisation is the adoption of one of the three colours. I can see immediately that this is potentially wasteful for our application because we have to fill the arena with a whole community of cells *before* establishing the gradients. (Obviously multicelled organisms have no choice but to do this because they have no reference to a global coordinate system). 
+Note also that there are some commonalities when we apply the ACO and EvoDevo approaches to the problem at hand. The 'ants' in ACO have similar properties to the undifferentiated 'cells' in EvoDevo. Both are sets of  agents that organise themselves via the deposition of labelling information that diffuses through space and degrades over time. In ACO the agents are motile, whereas in evodevo, the only motion is caused by cell division.  I think the sort of solution we are looking for is somewhere between the trail of an ant and the arena-wide gradients of the unidfferentiated cells. 
+
+## Proposed solution
+
+The current way I'm approching this then is to try to resolve these ideas and get to a point where we've got structure forming. The stages I think we need are described below: 
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, message=FALSE}
+require(png)
+imgin <- readPNG("~/Pictures/stage01.png")
+par(mar = c(0,0,0,0),oma=c(0,0,0,0))
+plot(NA,xlim=c(1,100),ylim=c(1,50),asp = 1,xlab="",ylab="",axes=F)
+rasterImage(imgin, 1, 1, 100, 50)
+```
+
+The image above shows another bridge design spec, where the foundation points are shown in blue and orange, and the void is shown in red. The idea is that each foundation starts to propagate a *network* of undifferentiated nodes into the arena. These are *not* physical points in the final design, but are used to resolve where these final points should go. Note that if nodes are propagated to the red zone, they will be removed along with any associated edges that link the node to the rest of the network (I've shown a couple of these with green edges for this first figure). This could happen repeatedly as the network is grown. Note that each node has information (not shown) about how many edges separate it from a foundation, which will used to guide differentiation later. 
+
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, message=FALSE}
+require(png)
+imgin <- readPNG("~/Pictures/stage02.png")
+par(mar = c(0,0,0,0),oma=c(0,0,0,0))
+plot(NA,xlim=c(1,100),ylim=c(1,50),asp = 1,xlab="",ylab="",axes=F)
+rasterImage(imgin, 1, 1, 100, 50)
+```
+
+During each iteration of the growth algorithm, network propagation is the only thing that happens until networks from two different foundations overlap. In the figure above, a new node from the orange foundation overlaps with the network from the blue foundation. This causes nodes in the overlapping regions to change state: they now become progenitors of differentiation of the network so that relevant nodes and edges have physical structure.
+
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, message=FALSE}
+require(png)
+imgin <- readPNG("~/Pictures/stage03.png")
+par(mar = c(0,0,0,0),oma=c(0,0,0,0))
+plot(NA,xlim=c(1,100),ylim=c(1,50),asp = 1,xlab="",ylab="",axes=F)
+rasterImage(imgin, 1, 1, 100, 50)
+```
+
+Because each node records the number of edges between itself and the network, it is possible for the differentiation to propagate around obstacles but always in the direction of the foundation nodes. If there are more than two foundations, the undifferentiated regions of the network can continue to propagate even while the solid parts develop, which would continue until all foundations are connected with solid edges
+
+
+
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, message=FALSE}
+require(png)
+imgin <- readPNG("~/Pictures/stage04.png")
+par(mar = c(0,0,0,0),oma=c(0,0,0,0))
+plot(NA,xlim=c(1,100),ylim=c(1,50),asp = 1,xlab="",ylab="",axes=F)
+rasterImage(imgin, 1, 1, 100, 50)
+```
+
+The figure above shows the network with the undifferentiated cells removed and the two networks now connected. This will not necessarily be done in a single step, but I wanted to show how the two networks first form a distinct bridge shape. 
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, message=FALSE}
+require(png)
+imgin <- readPNG("~/Pictures/stage05.png")
+par(mar = c(0,0,0,0),oma=c(0,0,0,0))
+plot(NA,xlim=c(1,100),ylim=c(1,50),asp = 1,xlab="",ylab="",axes=F)
+rasterImage(imgin, 1, 1, 100, 50)
+```
+
+It's clear that forming a lattice structure in this way is going to need to need a stage which moves the nodes around so that lattice is self-supporting. There are some established ways of acheiving this - see Andy Lomas' work on generative morphogenetic forms, which discusses how this can be done using a set of equations that iteratively update the position of nodes (including adding/subtracting nodes). I think we'd be able to adapt these ideas to making real structures (Andy's work makes 3D structures from 2D sheets of cells which is highly computationally intensive). The figure above shows purported lines of force around this structure which could be calculated locally. 
+
+```{r, echo=FALSE, fig.height=3, fig.width=6, message=FALSE}
+require(png)
+imgin <- readPNG("~/Pictures/stage06.png")
+par(mar = c(0,0,0,0),oma=c(0,0,0,0))
+plot(NA,xlim=c(1,100),ylim=c(1,50),asp = 1,xlab="",ylab="",axes=F)
+rasterImage(imgin, 1, 1, 100, 50)
+```
+
+Finally we see a sketch of the eventual shape that this process would converge upon. This is only an illustration; we'd have to consider real engineering features to get to the final structure. For example, edges close to the foundations might converge on thicker shorter final shapes. 
+
+## Summary of proposed algorithm 
+
+The stages shown above show a new algorithm that could be used in generative design. Although the stages above are sequential, I've tried to design it so that different parts of the network can be in different states, so that we can run a single iterative loop that addresses different stages of development in different regions of the system. Thus the core actions within the loop that processes all nodes would have the following stages:
+
+1. Propagate any new nodes (unless inhibited)
+2. Sense "other" networks (i.e. networks from other foundations) and if found, change local node state
+3. Propagate node states across the network
+4. Calculate forces on (differentiated) nodes, and update position and other attributes
+5. Prune/Merge nodes which do not have support
+
+
+
+
+```{r eval=FALSE, include=FALSE}
+
+
+#**Multiscale approaches** One approach to consider is to represent the design brief at multiple scales. Communication between scales would be an issue, but the advantage would be that it would mitigate an arbitrarily-chosen single scale and provide a means of communicating between spatially distant zones of the design. 
+
+### Grammar work: how to grow
+
+#**Fixed vs flexible growth**
+
+### Physical feedback
+
+#Before Covid, we had ideas regarding evaluating this approach via 3D printing and the robot, but the time we'd need to spend in the lab wasn't available and with continuing lockdowns etc. this work has not really taken off. The first thing to do is to access the haptic feedback from the robotic arm but it isn't clear yet how to fold the API into the GA code. 
+
+### Related areas
+
+#**Spatial arrangment of GA populations** This is a separate topic, but one I want to investigate long-term either within this framework or elsewhere. It concerns exploiting adjacency of individuals in the population on a grid as a means of preserving diversity. 
+
+
+#**Review** I've made progress with a review of Generative Evolution, but is still more like a repository of notes than a paper. Currently working on restructuring it so I can add papers to it systematically 
+```

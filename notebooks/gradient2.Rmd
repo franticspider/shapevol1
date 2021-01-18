@@ -1,0 +1,352 @@
+---
+title: "Gradients and Grammars: Spatial evolution"
+author: "Simon Hickinbotham"
+date: "31/03/2020"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Intro
+
+
+
+# Shape data shortcut
+
+
+
+## Heavy bridge
+
+
+## Light bridge
+
+```{r loadimage, message=F}
+require(png)
+imgin <- readPNG("~/Desktop/shapeimg/bridge100x40y.png")
+plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,xlab="X",ylab="Y")
+rasterImage(imgin, 1, 1, 100, 40)
+```
+
+
+# 4 Layer networks
+
+We're going to use a more complicated network structure, and see if we can evolve it to make the bridge shape -- the simple structure couldn't but that may have been because there's not enough network to do the computation. We'll do this as a first step before we look at adding nodes and connections. If it works as a structure, then I think we can then look at ways to do it. We'll also then need to move to more complex shapes, multiple gradients etc. 
+
+Let's make a basic network now: 
+
+```{r}
+source("../shapevol1/R/neat.R")
+
+inputnames <- c("x","y")
+outputnames <- c("i")
+
+tconns <- data.frame(nin =  c("x","y","x","y","x","y","1","1","1","2","2","2","3","3","3","4","5","6"),
+                     nout = c("1","1","2","2","3","3","4","5","6","4","5","6","4","5","6","i","i","i"),
+                     w=     c(0.4,0.5,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2),
+                     stringsAsFactors = F)
+
+#message("\nPARSING TCONNS\n")
+
+pc2 <- calclayers(tconns,inputnames,outputnames,verbose = F)
+plot.neat(pc2,inputnames,outputnames)
+```
+
+OK - we'll tidy up the visualisation of the network later! 
+
+Let's see if we can get a response out of this network in terms of an image - then we'll be able to evolve it
+
+
+
+```{r initialize,cache = T,fig.height=10, fig.width=10}
+
+
+img <- imgin
+d = dim(img)
+yv = seq(1,d[1])
+xv = seq(1,d[2])
+ds1 <- expand.grid(x=xv,y=yv)
+ds1 <- data.frame(x=ds1$x,y=ds1$y)
+ds1$i = 0
+
+for (x in 1:max(ds1$x)){
+  for(y in 1:max(ds1$y)){
+    idx <- ((y-1)*max(ds1$x))+x
+    
+    ds1$i[ds1$x==x & ds1$y==y] <- img[y,x,1]
+    
+  }
+}
+
+# now make train and test datasets
+
+index <- sample(1:nrow(ds1),round(0.1*nrow(ds1)))
+train <- ds1[index,]
+test <- ds1[-index,]
+```
+
+
+We also need to check that `eval.neat` is working for nets with hidden layers - because it wasn't! Let's prove that this is a problem and then head over to tests to sort it out: 
+
+```{r}
+
+tconns <- data.frame(nin = c("x","y","1","1","x","2"),nout = c("1","1","2","i","2","i"),w=c(0.45,0.35,0.1,0.9,0.2,0.4),stringsAsFactors = F)
+tnodes <- data.frame(node = c("1","2","i"), parsed = c(T,T,T), layer= c(1,2,3), rank= c(1,1,1),stringsAsFactors = F)
+inputnames <- c("x","y")
+pcsimple <- calclayers(tconns,inputnames,outputnames,verbose = F)
+#plot.neat(pc2,inputnames,outputnames)
+proc.neat(pcsimple,c(4,5),summarize = T,verbose = T)
+```
+
+
+New decision to normalise the X and Y coordinates - fits the activation function better: 
+
+
+
+```{r initialize2,cache = T,fig.height=10, fig.width=10}
+
+
+
+source("../shapevol1/R/neat.R")
+popsize <- 20
+ngen <- 5
+
+error <- vector(length = popsize)
+
+popn <- list()
+inodes <- c("x","y")
+onodes <- c("i")
+
+par(mfrow=c(5,4))
+
+evalsub <- function(net,data,rate = 0.1){
+  
+  xmax <- max(data$x)
+  ymax <- max(data$y)
+  
+  index <- sample(1:nrow(data),round(rate*nrow(data)))
+  dsub <- data[index,]
+  
+  err <- 0
+  
+  for(rr in 1:nrow(dsub)){
+    #val <- pri[ds1$x == x & ds1$y == y]
+    val <- proc.neat(net,c(dsub$x[rr]/xmax,dsub$y[rr]/ymax),summarize=T,verbose = F)
+    
+    val <- max(val,0)
+    val <- min(val,1)
+    
+    #imgout[y,x,] <- val
+    true <- dsub$i[rr]
+    
+    err <- err + (abs(val-true))
+    
+  }
+  
+  return(err)
+  
+}
+
+
+
+ploteval <- function(net,im,info=""){
+  
+  imgout <- im
+  
+  err <- 0
+  
+  xmax <- max(ds1$x)
+  ymax <- max(ds1$y)
+  
+  for (x in 1:xmax){
+    for(y in 1:ymax){
+      idx <- ((x-1)*max(ds1$y))+y
+      
+      #val <- pri[ds1$x == x & ds1$y == y]
+      val <- proc.neat(net,c(x/xmax,y/ymax),summarize=T,verbose = F)
+      
+      val <- max(val,0)
+      val <- min(val,1)
+      
+      imgout[y,x,] <- val
+      
+      err <- err + (abs(imgout[y,x,1]-im[y,x,1]))
+    }
+  }
+  minval <- min(imgout)
+  maxval <- max(imgout)
+  imgout <- 0.9*(imgout-minval)/(maxval-minval)
+  
+  
+  plot(NA,xlim=c(1,100),ylim=c(1,40),asp = 1,main=sprintf("error = %f\n%s",err,info),xlab = sprintf("error = %f",err))
+  rasterImage(imgout, 1, 1, 100, 40)
+  
+  return(err)
+}
+
+
+for(pp in 1:popsize){
+  popn[[pp]] <- init.neat(inodes,pc2)
+  error[pp] <- ploteval(popn[[pp]],imgin)
+}
+
+```
+
+
+
+
+```{r iterate2, fig.height=10, fig.width=10, cache=T}
+par(mfrow=c(5,4))
+
+es <- error
+elites <- 3
+
+
+ngen <- 2
+avgerr <- vector(length=ngen)
+
+
+for(gg in 1:ngen){
+  newpop <- list()
+  npn <- 0
+  erank <- order(es,decreasing = F)
+  errnew <- vector(length=length(popn))
+  
+  for(pp in 1:elites){
+    newpop[[pp]]<-popn[[erank[pp]]]
+    #es[erank[pp]]<- NA
+    errnew[pp] <- ploteval(newpop[[pp]],imgin,sprintf("elite (%f)",es[erank[pp]]))
+  }
+  #erank <- order(es)
+  #todo: we should never have a min value...
+  sw <- 1-(es-min(es,na.rm = T))/(max(es,na.rm = T)-min(es,na.rm = T))
+  #sw <- max(0,sw)
+  
+  en <- seq(1:length(popn))
+  
+  
+  # Now do the tournament: 
+  for(pp in (elites+1):length(popn)){
+    tidx <- sample(en,2,replace=F,prob = sw[!is.na(es)])
+    
+    #message(sprintf("%d: tidx vals are %d(p=%0.3f,val=%0.3f) and %d(p=%0.3f,val=%0.3f)",pp,tidx[1],sw[tidx[1]],es[tidx[1]],tidx[2],sw[tidx[2]],es[tidx[2]]))
+    if(es[tidx[1]]<es[tidx[2]]){
+      newp <- popn[[tidx[1]]]
+    }
+    else{
+      newp <- popn[[tidx[2]]]
+    }
+    
+    newpop[[pp]] <- mut.net(newp)
+    errnew[pp] <- ploteval(newpop[[pp]],imgin,"mutant")
+  }
+  popn<- newpop
+  es <- errnew
+  avgerr[gg] <- mean(errnew)
+}
+
+par(mfrow = c(1,1))
+plot(x=seq(1:ngen),y=avgerr)
+
+```
+
+
+
+Things to do:
+- Speed the whole thing up by: 1- subsampling the image by a factor of 10; 2- only plot the best image (and the error change diag) 
+
+
+
+```{r iterate3, fig.height=10, fig.width=10}
+par(mfrow=c(2,2))
+
+es <- error
+elites <- 3
+
+
+ngen <- 100
+avgerr <- vector(length=ngen)
+
+
+for(gg in 1:ngen){
+  newpop <- list()
+  npn <- 0
+  erank <- order(es,decreasing = F)
+  errnew <- vector(length=length(popn))
+  
+  for(pp in 1:elites){
+    newpop[[pp]]<-popn[[erank[pp]]]
+    #es[erank[pp]]<- NA
+    errnew[pp] <- ploteval(newpop[[pp]],imgin,sprintf("elite (%f)",es[erank[pp]]))
+    errnew[pp] <- evalsub(newpop[[pp]],ds1)
+  }
+  #erank <- order(es)
+  #todo: we should never have a min value...
+  sw <- 1-(es-min(es,na.rm = T))/(max(es,na.rm = T)-min(es,na.rm = T))
+  #sw <- max(0,sw)
+  
+  en <- seq(1:length(popn))
+  
+  
+  # Now do the tournament: 
+  for(pp in (elites+1):length(popn)){
+    tidx <- sample(en,2,replace=F,prob = sw[!is.na(es)])
+    
+    #message(sprintf("%d: tidx vals are %d(p=%0.3f,val=%0.3f) and %d(p=%0.3f,val=%0.3f)",pp,tidx[1],sw[tidx[1]],es[tidx[1]],tidx[2],sw[tidx[2]],es[tidx[2]]))
+    if(es[tidx[1]]<es[tidx[2]]){
+      newp <- popn[[tidx[1]]]
+    }
+    else{
+      newp <- popn[[tidx[2]]]
+    }
+    
+    newpop[[pp]] <- mut.net(newp)
+    #
+    #errnew[pp] <- ploteval(newpop[[pp]],imgin,"mutant")
+    errnew[pp] <- evalsub(newpop[[pp]],ds1)
+  }
+  popn<- newpop
+  es <- errnew
+  avgerr[gg] <- mean(errnew)
+  plot(x=seq(1:ngen),y=avgerr)
+}
+
+#par(mfrow = c(1,1))
+
+```
+
+
+# Spatial organisation
+
+It's pretty clear from these runs that we have a problem: diversity is not maintained and it becomes unlikely for the system to escape a local optima. This gives an opportunity to look. We've seen how spatial diversity has helped in AChems and there's a reference to this in the GP literature. There's lots of steps we can take to make this happen, so it's worthwhile writing a "wishlist" of things so that we can formulate a plan: 
+
+- we can simply assign X and Y cooridinates on the torid to the fitness measures we have - note we'll need a large population
+- then we need to figure out how to make the next generation
+    - do we bother with elitism?
+    - do we bother with generations (a la microbial GA)
+    - how should a tournament work? which gets replaced? 
+    - Do we randomly pick loci until the next gen arena is full? 
+    - what about dead space / deleting? Do we still do it randomly (because the tournament should rachet against random removal )
+    - Could we do some sort of binding analogue? So in One generation things bind - for evaluation the next - why is this advantageous? It makes it easier to organize the placement of new variants. Also, it means we can have more individuals in the system than we evaluate at each generation
+
+
+# Problems so far: 
+
+- 
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -6,20 +6,62 @@ act.fct <- function (x)
   1/(1 + exp(-x))
 }
 
-
-init.neat <- function(inodes){
+#' initialise a NEAT network
+#' 
+#' @param inodes the input nodes
+#' @return a boolean value indicating whether the gene is in this range
+#' @examples
+#' nn <- init.neat(c("x","y"))
+init.neat <- function(inodes,templatenetwork=NULL){
   
-  tconns <- data.frame(nin = c("x","y","1"),nout = c("1","1","i"),w=runif(3),stringsAsFactors = F)
-  tnodes <- data.frame(node = c("1","i"), parsed = c(T,T), layer= c(1,2), rank= c(1,1),stringsAsFactors = F)
-  tpn <- list()
-
-  tpn$conns <- tconns
-  tpn$nodes <- tnodes
-  tpn$inodes <- inodes
+  
+  if(is.null(templatenetwork)){
+    tconns <- data.frame(nin = c("x","y","1"),nout = c("1","1","i"),w=runif(3),stringsAsFactors = F)
+    tnodes <- data.frame(node = c("1","i"), parsed = c(T,T), layer= c(1,2), rank= c(1,1),stringsAsFactors = F)
+    tpn <- list()
+  
+    tpn$conns <- tconns
+    tpn$nodes <- tnodes
+    tpn$inodes <- inodes
+  }
+  else{
+    tpn <- templatenetwork
+    tpn$conns$w <- runif(nrow(tpn$conns),min=-10,max = 10)
+  }
   
   return(tpn)
 
 }
+
+
+mut.addconnection <- function(net){
+  
+  # 
+}
+
+
+
+#' mutate a NEAT network
+#' 
+#' @param inodes the input nodes
+#' @return a boolean value indicating whether the gene is in this range
+mut.net <- function(net,noderate=0.0,wtstep= 0.05, mp = NULL, midx = NULL, verbose = T){
+  if(is.null(mp))mp <- runif(1,0,1)
+
+  if(mp<noderate){            
+    if(verbose)message(sprintf("  node mutation (mp = %f, noderate = %f, midx=%d, w = %f)",mp,noderate,midx,net$conns$w[midx])) 
+  }
+  else{
+    if(is.null(midx))midx <- sample(1:length(net$conns$w),size=1)
+    oldval <- net$conns$w[midx]    
+    net$conns$w[midx] <- max(-10,min(10,net$conns$w[midx]+sample(c(wtstep,-wtstep),1)))
+    if(verbose) message(sprintf("  WEIGHT mutation (mp = %f, noderate = %f, midx=%d, was = %f now = %f)",mp,noderate,midx,oldval,net$conns$w[midx]))   
+  }
+  
+  return(net)
+}
+
+
 
 
 
@@ -160,6 +202,7 @@ calclayers<-function(clc,inodes,onodes,hnodes = NULL,verbose=F){
   nn <- list()
   nn$conns <- clc
   nn$nodes <- hnodes
+  nn$inodes <- inodes
   
   #CALCLAYERS returns
   return(nn)
@@ -187,7 +230,7 @@ plot.neat <- function(pconns,inodes=NULL,onodes,showaxes=T,verbose=F){
   #ispc<- ydim[2]/(length(inodes)-1)
   pmargin <- 0.2
   
-  plot(NA,xlim=c(-pmargin,max(pconns$nodes$layer)+pmargin),ylim=c(1-pmargin,max(pconns$nodes$rank,length(inodes))+pmargin),axes=showaxes,
+  plot(NA,xlim=c(-pmargin,max(pconns$nodes$layer)+pmargin),ylim=c(1-pmargin,max(pconns$nodes$rank,length(inodes))+pmargin+0.5),axes=showaxes,
        xlab="",ylab="")
   
   totlayers <- max(pconns$nodes$layer)
