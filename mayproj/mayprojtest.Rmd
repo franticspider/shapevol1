@@ -1,0 +1,548 @@
+---
+title: "Experiments in Generative Evolution"
+author: "Simon Hickinbotham"
+date: "12/01/2021"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Terminology/strategy
+
+- grow a network of "undifferentiated cells" as "undifferentiated nodes" (u-nodes) connected by "undifferenitated edges" (u-edges) 
+- each iteration, check for proximity to a stimulus
+- once a stimulus is found, propagate the info back to the foundation
+- reinforce edges that make this link
+- reposition edges that make this link to support them
+
+## Setting up
+
+Ideally we'd  try to grow from a single foundation, and have a "stimulus point" that triggers conversion from sensing nodes to support nodes. But since determining where to grow - even randomly - is complicated, we'll start with a uniform grid of cells. This is potentially wasteful but it allows us to get to solving the main issues early. 
+
+
+## Node types
+
+- "U": undifferentiated - all nodes start like this
+- "F": foundation - build from here - these are set manually after initialising
+- "S": a node near to or linked to a stimulus - which can be a set point or another network
+- "X": an undifferentiated node that is located in an inhibition region
+- "C": a constructor node - basis of converting to solid structure
+
+## Regular network version
+
+Adding nodes on a grid is pretty straghtforward. Here we'll create a regular square lattice with cross-braces. We commence with the nodes: 
+
+```{r}
+addnode <- function(nodes,n=0,xpos=0,ypos=0,level=-1,slevel=-1,type="U"){
+  
+  newrow <- data.frame(
+    n = n,
+    x = xpos ,
+    y= ypos, 
+    level = level, 
+    type = type, 
+    slevel = slevel,    # the 'stimulus level' a node has - zero means stimulus is adjacent
+    stringsAsFactors = F)
+  
+  if(is.null(nodes))
+    nodes <- newrow
+  else
+    nodes <- rbind(nodes,newrow, stringsAsFactors = F)
+  
+  return(nodes)
+  
+}
+```
+
+
+Now the edges. Let's start by using integers only, cos then we can predict the position and we don't have to minimise any distances to find neighbours. 
+Here's a function `addedge` to add an edge to the set:
+
+```{r}
+#' edges <- addedge(edges,nodes,n,dir="W",ostep)
+addedge <- function(edges=NULL,nodes,n,dir,dist){
+  
+  #Identify the node to connect to: 
+  n1 <- nodes[nodes$n==n,]
+  
+  if(nrow(n1)!=1){
+    message(sprintf("ERROR: found %d rows for node %d",nrow(n1),n))
+    return(NULL)
+  }
+  
+  found <- F
+  if(dir == "W"){
+    n2 = nodes[nodes$x == (n1$x[1]-dist) & nodes$y == n1$y[1],]
+    if(nrow(n2)!=1){
+      message(sprintf("ERROR: found %d rows for neighbour node",nrow(n1),n))
+      return(NULL)
+    }
+    else{
+      found = T
+    }
+  }
+  if(dir == "S"){
+    n2 = nodes[nodes$x == (n1$x[1]) & nodes$y == (n1$y[1]-dist),]
+    if(nrow(n2)!=1){
+      message(sprintf("ERROR: found %d rows for neighbour node",nrow(n1),n))
+      return(NULL)
+    }
+    else{
+      found = T
+    }
+  }
+  if(dir == "SW"){
+    n2 = nodes[nodes$x == (n1$x[1]-dist) & nodes$y == (n1$y[1]-dist),]
+    if(nrow(n2)!=1){
+      message(sprintf("ERROR: found %d rows for neighbour node",nrow(n1),n))
+      return(NULL)
+    }
+    else{
+      found = T
+    }
+  }
+
+  newrow <- data.frame(from = n1$n[1], to = n2$n[1], type = "U")
+  
+  
+  if(is.null(edges))
+    edges <- newrow
+  else
+    edges <- rbind(edges,newrow, stringsAsFactors = F)
+  
+  return(edges)
+}
+```
+
+Now we can generate a regular network within and x,y range - the process will be similar for 3D - we'd just have to add a z dimension. 
+
+```{r}
+makenet <- function(xlim=c(-100,100),ylim=c(0,200),ostep=20){
+  
+  
+  # generate the nodes: 
+  nodes <- NULL
+  edges <- NULL
+  n = 1
+  e = 1
+  offset = F
+  for(yy in seq(ylim[1],ylim[2],ostep)){
+    offset <- !offset
+    for(xx in seq(xlim[1],xlim[2],ostep)){
+        #if (offset){
+        #  nodes <- addnode(nodes,n=n,xpos=xx,ypos=yy)
+        #}
+        #else{
+        #  nodes <- addnode(nodes,n=n,xpos=(xx-(ostep/2)),ypos=yy)
+        #}
+        nodes <- addnode(nodes,n=n,xpos=xx,ypos=yy)
+        
+        #horizontal edges: 
+        if(xx>xlim[1])
+          edges <- addedge(edges,nodes,n,dir="W",ostep)
+        #vertical edges: 
+        if(yy>ylim[1])
+          edges <- addedge(edges,nodes,n,dir="S",ostep)
+        #vertical edges: 
+        if(xx>xlim[1] & yy>ylim[1])
+          edges <- addedge(edges,nodes,n,dir="SW",ostep)
+        
+        
+        #increment the node number
+        n = n+1
+    }
+  }
+  
+  net <- list()
+  net$n <- nodes
+  net$e <- edges
+  
+  return(net)
+}
+
+setnodetype <- function(net,x0,y0,x1,y1,type="F"){
+  net$n$type[net$n$x>x0 & net$n$x<x1 & net$n$y>y0 & net$n$y<y1] <- type
+  return(net)
+}
+
+
+# constants
+iel = 50            # ideal edge length - not used yet
+xlim = c(-100,100)  # x range
+ylim = c(0,200)     # y range
+ostep = 20
+
+net <- makenet(xlim,ylim,ostep)
+
+# Set the foundation nodes: 
+#net$n$type[net$n$n>=5 & net$n$n <=7]<-"F"
+net <- setnodetype(net,-25,-5,25,5,"F")
+ 
+# Store the network's initial state:
+innet <- net
+
+# Here's a stimulus: 
+stim <- data.frame(x=-5,y=145)
+
+```
+
+
+If we eventually want an irregular network then an alternative to the above would be to generate a set of random nodes in the space and then connect the edges via e.g. a Delaunay triangulation. Hard to say what the advantage of this would be right now, but later on it may be a better way to initialise so we can get the system robust to stochastic effects. 
+
+
+## Growing the network levels
+
+
+Here's the initial network: a foundation of two connected nodes
+
+Let's have a function to plot the network - we'll use this to keep track of how the network grows later. The bottom of this code block shows the initial network: 
+
+```{r fig.height=6, fig.width=6}
+
+plotnet <- function(net,stim=NULL,inhib=NULL,xlim=c(-100,100),ylim=c(0,200),pcols=NULL){
+  nodes <- net$n
+  edges <- net$e
+  plot(NA,xlim=xlim,ylim=ylim,asp=T)
+  
+  # Draw the inhibition regions
+  if(!is.null(inhib)){
+    rect(xleft = inhib$x0, ybottom = inhib$y0, xright = inhib$x1, ytop = inhib$y1, col="darkcyan",lty=0)
+  }
+  
+  # Draw the edges
+  if(!is.null(edges)){
+    for(ee in 1:nrow(edges)){
+      n0 <- nodes[nodes$n == edges$from[ee],]
+      n1 <- nodes[nodes$n == edges$to[ee],]
+      segments(x0=n0$x,x1=n1$x,y0=n0$y,y1=n1$y,lwd = 2,col="grey80")
+    }
+  }
+  
+  # Draw the nodes
+  un <- nodes[nodes$type=="U",]
+  points(x=un$x,y=un$y,pch=20,cex=2,col="grey80")
+  fn <- nodes[nodes$type=="F",]
+  points(x=fn$x,y=fn$y,pch=20,cex=2,col="black")
+  sn <- nodes[nodes$type=="S",]
+  points(x=sn$x,y=sn$y,pch=1,cex=2.5,col="pink")
+  xn <- nodes[nodes$type=="X",]
+  points(x=xn$x,y=xn$y,pch=20,cex=2,col="yellow")
+  
+  # Draw the stimulus 
+  if(!is.null(stim))
+    points(x=stim$x,y=stim$y,pch=20,cex=2,col="red")
+  
+  #Draw the propagation now: 
+  if(max(nodes$level)>-1){
+    if(is.null(pcols))
+      pcols = rainbow(max(nodes$level))
+    for(pp in 1:max(nodes$level)){
+      pn <- nodes[nodes$level==pp & nodes$type!="F",]
+      if(nrow(pn)>0)
+        points(x=pn$x,y=pn$y,pch=20,col=pcols[pp])
+    }
+  }
+  
+  #points(x = runif(50,xlim[1],xlim[2]),y=runif(50,ylim[1],ylim[2]))
+  points(x=xlim[2]*10,y=ylim[2]*10)
+}
+
+
+plotnet(net,stim,xlim=xlim,ylim=ylim)
+```
+
+Here's the `propagate` function to grow the network:
+
+```{r}
+propagate <- function(network,inhib=NULL){
+  
+  edges <- network$e
+  
+  if(max(network$n$level)==-1){
+    sn <- network$n[network$n$type=="F",]
+    sl <- 1
+    
+    pe <- edges[edges$from %in% sn$n | edges$to %in% sn$n,]
+    newn <- unique(c(pe$from,pe$to))
+    newn <- newn[!(newn %in% sn$n)]
+    
+    network$n$level[network$n$n %in% newn & network$n$level == -1 & network$n$type != "X"] <- sl
+  }
+  else{
+    sn <- network$n[network$n$level==max(network$n$level),]
+    sl <- max(sn$level)+1
+    #message(sprintf("adding level %d ",sl))
+    
+    pe <- edges[edges$from %in% sn$n | edges$to %in% sn$n,]
+    newn <- unique(c(pe$from,pe$to))
+    newn <- newn[!(newn %in% sn$n)]
+    
+    network$n$level[network$n$n %in% newn & network$n$level == -1 & network$n$type != "X"] <- sl
+    network$n$type[network$n$n %in% newn & network$n$level == -1 & network$n$type != "X"] <- "S"
+    
+    message(sprintf("Adding slevel %d to nodes %d",sl,network$n$n[network$n$n %in% newn & network$n$level == -1]))
+  }
+  
+  return(network)
+}
+
+```
+
+Here are functions to check whether a stimulus has been reached by a net (`checkstim`), and to propagate that information back to the foundation (`propstim`): 
+
+```{r}
+checkstim <- function(net,stim,level,odist,verbose = T){
+  
+  if(verbose)message(sprintf("Checking stim at %d,%d",stim$x,stim$y))
+  
+  found <- F
+  nodes <- net$n[net$n$level == level,]
+  if(nrow(nodes)>0){
+    for(nn in 1:nrow(nodes)){
+      edist <- sqrt((nodes$x[nn]-stim$x)^2 + (nodes$y[nn]-stim$y)^2)
+      if(edist<odist){
+        message(sprintf("Found stimulus at level %d",level))
+        found <- T
+        
+        net$n$slevel[net$n$n == nodes$n[nn]] = 0
+        net$n$type[net$n$n == nodes$n[nn]] = "S"
+        
+      }
+    }
+  }
+  
+  return(net)
+}
+
+
+propstim <- function(net,verbose=T){
+  
+  # get the current maximum level
+  msl <- max(net$n$slevel)
+  
+  # find all nodes at this level
+  sn <- net$n[net$n$slevel == msl,]
+  fl <- min(net$n$level[net$n$slevel == msl])
+  
+  msl <- msl+1
+  message(sprintf("adding stimulus level %d ",msl))
+    
+  edges <- net$e
+  
+  # get everything connected to the current slevel nodes: 
+  pe <- edges[edges$from %in% sn$n | edges$to %in% sn$n,]
+  newn <- unique(c(pe$from,pe$to))
+  newn <- newn[!(newn %in% sn$n)]
+  
+  # Might need to check what the level is to set this: 
+  net$n$slevel[
+    net$n$n %in% newn & 
+    net$n$level == fl-1 & 
+    net$n$slevel == -1 ] <- msl
+  net$n$type[
+    net$n$n %in% newn & 
+    net$n$level == fl-1 & 
+    net$n$slevel == msl ] <- "S"
+  
+  
+  return(net)
+}
+
+```
+
+
+
+
+
+```{r include=FALSE}
+require(gifski)
+```
+
+
+OK that's a good start - we need to propagate the connectivity between the foundation and the stimulus 
+
+```{r linkit2, animation.hook="gifski", interval = 0.2, fig.width=6, fig.height=6, cache=TRUE, message=F}
+
+#for (i in 1:10) {
+#    plot(x=i/2, y=i/2, xlim=c(0,6), ylim=c(0,6), pch=20, col=palette()[2], cex=5)
+#}
+
+
+
+rungrowth <- function(net = NULL, stim = NULL, inhib=NULL,  nsteps = NULL, xlim, ylim, pcols = NULL){
+  #net <- innet
+  #nsteps <- 15
+  if(is.null(pcols))  pcols  <- rainbow(n=nsteps)
+  
+  plotnet(net,stim,inhib,xlim=xlim,ylim=ylim,pcols = pcols)
+  
+  stimfound <- F
+  for(ppp in 1:nsteps){
+    net <- propagate(net)
+    if(stimfound){
+      message("Running propstim")
+      net <- propstim(net)
+    }
+    else{
+      net <- checkstim(net,stim,ppp,ostep)
+      if("S" %in% net$n$type){
+        message("Setting S")
+        stimfound <- T
+      }
+    }
+    plotnet(net,stim,inhib,xlim,ylim,pcols)
+  }
+  return (net)
+}
+
+net = rungrowth(net = innet, stim = stim, nsteps = 15, xlim=xlim,ylim=ylim)
+
+
+```
+
+## Other stimulus examples: 
+
+let's do a stimulus in various different positions. Because the lattice is not symmetrical, there'll be some positional effects - again, let's worry about those later when we've got the main network growing. Here's a stimulus to the left of the foundation, which has to run perpendicular to the edge diagonals
+
+```{r linkit3, echo=FALSE, fig.height=6, fig.width=6, message=FALSE, cache=TRUE, animation.hook="gifski", interval=0.2}
+stim2 <- stim
+stim2$x <- -90
+
+net = rungrowth(net = innet, stim = stim2, nsteps = 20, xlim=xlim,ylim=ylim)
+```
+
+...and here's one to the right, which has to run parallel to the diagonals. You can see there's a different effect on how the network grows. 
+
+```{r linkit, echo=FALSE, fig.height=6, fig.width=6, message=FALSE, cache=TRUE, animation.hook="gifski", interval=0.2}
+stim2 <- stim
+stim2$x <- 90
+
+net = rungrowth(net = innet, stim = stim2, nsteps = 20, xlim=xlim,ylim=ylim)
+```
+
+# Obstacles 
+
+OK, now to start to hit the bridge challenge, we need to specify the void under the bridge. We'll do this via a list of rectangles - this will make it easier to code for in this proof-of-concept stage. I've updated the `plotnet` function to draw obstacles in dark grey behind the network. The next code chunk creates a wider network with a void region, and plots it: 
+
+```{r obst1, cache = T, echo=FALSE, fig.height=6, fig.width=6, message=FALSE, cache=TRUE, animation.hook="gifski", interval=0.2}
+nxl <- c(0,500)
+net <- makenet(xlim=nxl)
+net <- setnodetype(net,75,-5,125,5)
+
+
+inhib=data.frame(x0=190,y0=-10,x1=310,y1=150)
+
+#net <- setnodetype(net,inhib$x0,inhib$y0,inhib$x1,inhib$y1,"X")
+net <- setnodetype(net,x0=inhib$x0,y0=inhib$y0,x1=inhib$x1,y1=inhib$y1,"X")
+
+xnet <- net
+
+stim$x<-410
+plotnet(xnet,stim,inhib,xlim = nxl)
+
+net = rungrowth(net = xnet, stim = stim,inhib=inhib, nsteps = 40,xlim=nxl,ylim=ylim)
+```
+
+
+
+
+```{r obst2, cache = T, echo=FALSE, fig.height=6, fig.width=6, message=FALSE, cache=TRUE, animation.hook="gifski", interval=0.2}
+nxl <- c(0,500)
+net <- makenet(xlim=nxl)
+net <- setnodetype(net,75,-5,125,5)
+
+
+inhib=data.frame(x0=190,y0=-10,x1=310,y1=150)
+
+#net <- setnodetype(net,inhib$x0,inhib$y0,inhib$x1,inhib$y1,"X")
+net <- setnodetype(net,x0=inhib$x0,y0=inhib$y0,x1=inhib$x1,y1=inhib$y1,"X")
+
+xnet <- net
+
+stim$x<-410
+plotnet(xnet,stim,inhib,xlim = nxl)
+
+net = rungrowth(net = xnet, stim = stim,inhib=inhib, nsteps = 40,xlim=nxl,ylim=ylim)
+```
+
+
+
+
+
+
+
+# Multiple networks and stimuli
+
+A key concept is that a node from another network should work exactly like a stimulus. The issue then is how to keep track of stimlevels etc.
+
+Let's refactor everything so we have a bunch of different networks and see how they meet each other around obstacles. Then we can understand what's going on. 
+
+
+```{r}
+nets<-list()
+
+```
+
+
+
+
+--------
+# Obsolete code
+
+Here are some functions I tried but that didn't go anywhere (yet)
+
+#### Growing the network from scratch
+
+I did a little work on actually growing the network, rather than establishing a grid that covers the whole space. 
+
+Here's the initial network: a foundation of two connected nodes
+
+```{r}
+# constants
+iel = 50
+
+nodes <- data.frame(n = c(0,1),x = c(-25,25),y=c(0,0),level=c(0,0),type=c("F","F"),e1=c(F,F),e2=c(F,F),e3=c(T,F),e4=c(F,F),e5=c(F,F),e6=c(F,T))
+edges <- data.frame(from = 0, to = 1, type = "F")
+net <- list()
+net$n <- nodes
+net$e <- edges
+```
+
+#### Edge numbering
+
+If we need it...
+
+```{r echo=FALSE, fig.height=4, fig.width=4}
+plot(NA,xlim=c(-30,30),ylim=c(-30,30),asp=T,xlab="x",ylab="y")
+
+# Do the edges first
+segments(x0=0,y0=0,x1=  0,y1= 25)
+segments(x0=0,y0=0,x1= 25,y1= 25)
+segments(x0=0,y0=0,x1= 25,y1=  0)
+segments(x0=0,y0=0,x1=  0,y1=-25)
+segments(x0=0,y0=0,x1=-25,y1=-25)
+segments(x0=0,y0=0,x1=-25,y1=  0)
+
+# Now the nodes
+points(x=0,y=0,pch=21,col="black",bg="black",cex=2)
+
+points(x=  0,y= 25,pch=21,col="black",bg="white",cex=2)
+points(x= 25,y= 25,pch=21,col="black",bg="white",cex=2)
+points(x= 25,y=  0,pch=21,col="black",bg="white",cex=2)
+points(x=  0,y=-25,pch=21,col="black",bg="white",cex=2)
+points(x=-25,y=-25,pch=21,col="black",bg="white",cex=2)
+points(x=-25,y=  0,pch=21,col="black",bg="white",cex=2)
+
+# index
+text("1",x=  2,y= 20)
+text("2",x= 20,y= 17)
+text("3",x= 20,y=-2)
+text("4",x=-2 ,y=-20)
+text("5",x=-20,y=-17)
+text("6",x=-20,y= 2)
+```

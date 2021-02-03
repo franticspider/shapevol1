@@ -14,7 +14,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 - grow a network of "undifferentiated cells" as "undifferentiated nodes" (u-nodes) connected by "undifferenitated edges" (u-edges) 
 
-
 # Setting up
 
 Ideally we'd  try to grow from a single foundation, and have a "stimulus point" that triggers conversion from sensing nodes to support nodes. But since determining where to grow - even randomly - is complicated, we'll start with a uniform grid of cells. This is potentially wasteful but it allows us to get to solving the main issues early. 
@@ -53,9 +52,227 @@ text("5",x=-20,y=-17)
 text("6",x=-20,y= 2)
 ```
 
+# Pre-building the u-net
+
+## Regular version
+
+Adding nodes on a grid is pretty straghtforward. Here we'll create a regular square lattice with cross-braces. We commence with the nodes: 
+
+```{r}
+addnode <- function(nodes,n=0,xpos=0,ypos=0,level=-1,type="U"){
+  
+  newrow <- data.frame(n = n,x = xpos ,y= ypos, level = level, type = type, stringsAsFactors = F)
+  
+  if(is.null(nodes))
+    nodes <- newrow
+  else
+    nodes <- rbind(nodes,newrow, stringsAsFactors = F)
+  
+  return(nodes)
+  
+}
+```
 
 
-# Growing the network
+Now the edges. Let's start by using integers only, cos then we can predict the position and we don't have to minimise any distances to find neighbours. 
+
+
+
+```{r}
+#' edges <- addedge(edges,nodes,n,dir="W",ostep)
+addedge <- function(edges=NULL,nodes,n,dir,dist){
+  
+  #Identify the node to connect to: 
+  n1 <- nodes[nodes$n==n,]
+  
+  if(nrow(n1)!=1){
+    message(sprintf("ERROR: found %d rows for node %d",nrow(n1),n))
+    return(NULL)
+  }
+  
+  found <- F
+  if(dir == "W"){
+    n2 = nodes[nodes$x == (n1$x[1]-dist) & nodes$y == n1$y[1],]
+    if(nrow(n2)!=1){
+      message(sprintf("ERROR: found %d rows for neighbour node",nrow(n1),n))
+      return(NULL)
+    }
+    else{
+      found = T
+    }
+  }
+  if(dir == "S"){
+    n2 = nodes[nodes$x == (n1$x[1]) & nodes$y == (n1$y[1]-dist),]
+    if(nrow(n2)!=1){
+      message(sprintf("ERROR: found %d rows for neighbour node",nrow(n1),n))
+      return(NULL)
+    }
+    else{
+      found = T
+    }
+  }
+  if(dir == "SW"){
+    n2 = nodes[nodes$x == (n1$x[1]-dist) & nodes$y == (n1$y[1]-dist),]
+    if(nrow(n2)!=1){
+      message(sprintf("ERROR: found %d rows for neighbour node",nrow(n1),n))
+      return(NULL)
+    }
+    else{
+      found = T
+    }
+  }
+
+  newrow <- data.frame(from = n1$n[1], to = n2$n[1], type = "U")
+  
+  
+  if(is.null(edges))
+    edges <- newrow
+  else
+    edges <- rbind(edges,newrow, stringsAsFactors = F)
+  
+  return(edges)
+}
+```
+
+
+
+```{r}
+# constants
+iel = 50            # ideal edge length
+xlim = c(-100,100)  # x range
+ylim = c(0,200)     # y range
+ostep = 20
+
+# generate the nodes: 
+nodes <- NULL
+edges <- NULL
+n = 1
+e = 1
+for(yy in seq(ylim[1],ylim[2],ostep)){
+  for(xx in seq(xlim[1],xlim[2],ostep)){
+      nodes <- addnode(nodes,n=n,xpos=xx,ypos=yy)
+      
+      #horizontal edges: 
+      if(xx>xlim[1])
+        edges <- addedge(edges,nodes,n,dir="W",ostep)
+      #vertical edges: 
+      if(yy>ylim[1])
+        edges <- addedge(edges,nodes,n,dir="S",ostep)
+      #vertical edges: 
+      if(xx>xlim[1] & yy>ylim[1])
+        edges <- addedge(edges,nodes,n,dir="SW",ostep)
+      
+      
+      #increment the node number
+      n = n+1
+  }
+}
+
+# Set the foundation nodes: 
+nodes$type[nodes$n>=5 & nodes$n <=7]<-"F"
+net <- list()
+net$n <- nodes
+net$e <- edges
+
+stim <- data.frame(x=-5,y=145)
+
+innet <- net
+
+```
+
+## irregular version
+
+An alternative to the above would be to generate a set of random nodes in the space and then connect the edges via e.g. a Delaunay triangulation. Hard to say what the advantage of this would be 
+
+
+# Growing the network levels
+
+
+Here's the initial network: a foundation of two connected nodes
+
+Let's have a function to plot the network - we'll animate this later: 
+
+```{r fig.height=5, fig.width=5}
+plotnet <- function(net,stim,xlim=c(-100,100),ylim=c(0,500),pcols=NULL){
+  nodes <- net$n
+  edges <- net$e
+  plot(NA,xlim=xlim,ylim=ylim,asp=T)
+  
+  #Draw the edges
+  for(ee in 1:nrow(edges)){
+    n0 <- nodes[nodes$n == edges$from[ee],]
+    n1 <- nodes[nodes$n == edges$to[ee],]
+    segments(x0=n0$x,x1=n1$x,y0=n0$y,y1=n1$y,lwd = 2,col="grey80")
+  }
+  
+  #Draw the nodes
+  un <- nodes[nodes$type=="U",]
+  points(x=un$x,y=un$y,pch=20,cex=2,col="grey80")
+  fn <- nodes[nodes$type=="F",]
+  points(x=fn$x,y=fn$y,pch=20,cex=2,col="black")
+  
+  points(x=stim$x,y=stim$y,pch=20,cex=2,col="red")
+  
+  if(is.null(pcols))
+    pcols = rainbow(max(nodes$level))
+  
+  #Draw the propagation now: 
+  for(pp in 1:max(nodes$level)){
+    pn <- nodes[nodes$level==pp & nodes$type!="F",]
+    if(nrow(pn)>0)
+      points(x=pn$x,y=pn$y,pch=20,col=pcols[pp])
+  }
+}
+
+plotnet(net,stim,xlim,ylim)
+```
+
+OK that's a good start - we need to propagate the connectivity between the foundation and the stimulus 
+
+```{r sampleant, fig.height=6, fig.width=6, cache=FALSE, interval=0.05, aniopts="controls,loop"}
+
+propagate <- function(net){
+  if(max(net$n$level)==-1){
+    sn <- net$n[net$n$type=="F",]
+    sl <- 1
+    
+    pe <- edges[edges$from %in% sn$n | edges$to %in% sn$n,]
+    newn <- unique(c(pe$from,pe$to))
+    newn <- newn[!(newn %in% sn$n)]
+    
+    net$n$level[net$n$n %in% newn] <- sl
+  }
+  else{
+    sn <- net$n[net$n$level==max(net$n$level),]
+    sl <- max(sn$level)+1
+    #message(sprintf("adding level %d ",sl))
+    
+    pe <- edges[edges$from %in% sn$n | edges$to %in% sn$n,]
+    newn <- unique(c(pe$from,pe$to))
+    newn <- newn[!(newn %in% sn$n)]
+    
+    net$n$level[net$n$n %in% newn & net$n$level == -1] <- sl
+  }
+  
+  return(net)
+}
+
+net <- innet
+nsteps <- 15
+pcols  <- rainbow(n=10)
+plotnet(net,stim,xlim,ylim,pcols)
+
+oldnet <- net
+
+for(ll in 1:nsteps){
+  net <- propagate(net)
+  plotnet(net,stim,xlim,ylim,pcols)
+}
+```
+
+# Growing the network from scratch
+
+I did a little work on actually growing the network, rather than establishing a grid that covers the whole space. 
 
 Here's the initial network: a foundation of two connected nodes
 
@@ -69,72 +286,3 @@ net <- list()
 net$n <- nodes
 net$e <- edges
 ```
-
-Let's have a function to plot the network - we'll animate this later: 
-
-```{r}
-plotnet <- function(net){
-  nodes <- net$n
-  edges <- net$e
-  plot(NA,xlim=c(-100,100),ylim=c(0,500),asp=T)
-  
-  #Draw the edges
-  for(ee in 1:nrow(edges)){
-    n0 <- nodes[nodes$n == edges$from[ee],]
-    n1 <- nodes[nodes$n == edges$to[ee],]
-    segments(x0=n0$x,x1=n1$x,y0=n0$y,y1=n1$y,lwd = 2,col="black")
-  }
-  
-  
-  #Draw the nodes
-  points(x=nodes$x,y=nodes$y,pch=20,cex=2)
-}
-
-plotnet(net)
-```
-
-Now we need a function to propagate the network
-
-
-```{r}
-verbose = T
-#propagate <- function(net,verbose=T){
-  #randomly pick a node
- node <- net$n[sample(nrow(net$n),1),]
-  if(verbose)message(sprintf("Chose node %d", node$n))
-  
-  #randomly pick a neighbour
-  edges <- net$e[net$e$from == node$n | net$e$to == node$n,]
-  if(verbose)message(sprintf("Edges found =  %d", nrow(edges)))
-  
-  #add a node in new space - let's be naive and put it between one of the edges
-  edge <- edges[sample(nrow(edges),1),]
-  
-  #now get the partner node
-  if(edge$from == node$n){
-    n2 <- net$n[net$n$n == edge$to,]
-  }else{
-    n2 <-  net$n[net$n$n == edge$from,]
-  }
-  
-  newx <- (node$x + n2$x)/2
-  newy <- (node$y + n2$y)/2
-  
-  #add edges
-  
-#}
-
-propagate(net)
-```
-
-
-
-# Tests
-
-
-```{r}
-
-```
-
-
-

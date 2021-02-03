@@ -1,6 +1,14 @@
 
 
 
+#' Draw an STL cube - handy for all sorts of things: 
+cubeSTL(centre = c(0,0,0), width= 20){
+  
+  
+  
+}
+
+
 
 
 

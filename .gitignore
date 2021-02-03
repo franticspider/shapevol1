@@ -57,3 +57,11 @@ notebooks/**/*.RData
 notebooks/**/*.rdb
 notebooks/**/__packages
 notebooks/**/*.rdx
+
+############################
+# "May project" output files
+mayproj/**/*.RData
+mayproj/**/*.rdb
+mayproj/**/*.rdx
+mayproj/**/__packages
+mayproj/**/*.gif
