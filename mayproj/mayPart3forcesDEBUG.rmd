@@ -1,0 +1,584 @@
+---
+title: "Version2"
+author: "Simon Hickinbotham"
+date: "16/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Summary
+
+We plan to:
+
+- move to a network built from equilateral triangles
+- accommodate multiple foundations and stimuli in a single network
+- emphasise processing on a per-node basis
+
+On this basis, I think it's time to start a new workbook and implement these ideas. 
+
+Let's load the functions: 
+
+```{r}
+source("maycode.R")
+```
+
+
+# Calculating forces - sodaracer version
+
+Let's look at how sodaracer-type physics engines sorts out forces in their meshes - perhaps not an obvious choice but may provide a way 'in' to the system. 
+
+A 'model' in soda racer consists of a bunch of masses (nodes), connected by springs (edges) - very similar to the model we are using above. 
+
+Each mass has parameters {s,v(velocity),a(acceleration),f (force)}, each of which has an xy coordinate. 
+
+Each spring has 2 node names, restlength, amplitude, phase
+
+Each iteration updates the masses. 6 steps: clear; gForce(gravity); fForce; kForce; integrate; collide. 
+
+- clearForces sets the f vector to zero - so the starting f values in the model are immediately deleted
+- gForce simply adds a fixed unit to the y-dim of 'f'
+- fForce - calculates friction (opposes velocity) - a vector multiplication of the f and v vectors
+- kForce - apply springwise force to both masses in the spring
+- integrate. F = ma, so a = F/m. 
+- collide checks if a mass has hit a wall - we don't need this!
+
+It looks like this approach uses Euler's method to update the forces over small delta-time. 
+
+## Worked example
+
+First, let's load the network from part 2 and trim it so we just have the nodes that have propagated back from the stimulus to the foundation. Here's the 'full' network.
+
+```{r}
+nl = readRDS("ntest1.RDS")
+net = nl[[1]]
+plotnet(net)
+```
+
+```{r}
+subnet = net
+
+subnet$n = net$n[net$n$type=="S" | net$n$type=="F" ,]
+
+subnet$n = subnet$n[subnet$n$y < 55 & subnet$n$x>95,]
+
+subnet$n$x = subnet$n$x/100
+subnet$n$y = subnet$n$y/100
+
+
+subnet$e = NULL
+sei = 1
+for(ee in 1:nrow(net$e)){
+  if(net$e$from[ee] %in% subnet$n$n & net$e$to[ee] %in% subnet$n$n){
+    if(sei == 1)
+      subnet$e <- net$e[ee,]
+    else
+      subnet$e = rbind(subnet$e, net$e[ee,])
+    sei = sei + 1
+  }
+    
+}
+
+
+plotnet(subnet,xlim=range(net$n$x)/100,ylim=range(net$n$y)/100)
+```
+
+OK this is good enough to start to think about force calculation on these nodes. We'll assume each edge is "rigid", but I'm looking for something that at least calculates the forces (compression and tension) on the edges and iteratively updates position and forces - that way we can think about adding/removing nodes etc in a local way. 
+
+I've got three broad options: 
+
+- rigid-body mechanics
+- sodaracer physics
+- Lomas' physics 
+
+I'm going with sodaracer for now because it's got the closest mapping to the networks we have. Once we've got the methodology nailed down a bit, we'll incorporate more realistic forces from mechanics, and the addition and removal of nodes from Lomas' work. 
+
+The strategy then is to gradually introduce the stages we need to get an update based on the openConstructor source code (sodaracer is no longer available). The top-level algorithm repeatedly iterates through the following steps: 
+
+1. **clear forcess**: all forces on each node are set to zero. 
+2. **gForce**: Calculates force due to gravity - basically adding 1 to the y-dimension forces
+3. **fForce**: Calculates the *frictional* forces on each node
+4. **kForce**: Calculates the *kinetic* forces on each node
+5. **integrate**: Updates the positions of the nodes based on the forces. 
+- (there's an optional step called `collide' which spots when the mesh hits a wall - we won't bother with that now.)
+
+
+OK, a good sanity check will be to implement steps 1,2 and 5 first, and then the fForce and kForce components. 
+
+Let's define all our member variables here and do any extra initialisation of the network:
+
+```{r}
+
+VECTOR.len <- function(nodes,n1,n2){
+  x <- nodes$x[n1]-nodes$x[n2]
+  y <- nodes$y[n1]-nodes$y[n2]
+  
+  return(sqrt((x*x)+(y*y)))
+}
+
+gg <- -0.02 # 2   # "g":-0.02
+ff <-  0.137  # "f":0.137
+kk <-  6.25   # "k":6.25
+mm <- 1
+dt <- 0.16 # 1/12 # 1/60 == 0.166666
+restlength <- VECTOR.len(subnet$n,subnet$e$from[1],subnet$e$to[1])
+
+gn <- subnet
+gn$n$fx <- 0
+gn$n$fy <- 0
+
+gn$n$vx <- 0
+gn$n$vy <- 0
+
+gn$n$ax <- 0
+gn$n$ay <- 0
+
+gn$e$fMag <- 0
+
+gnstart <- gn
+```
+
+Here's code for clearing forces: 
+
+```{r}
+clearForce <- function(nodes){
+  nodes$fx <- 0
+  nodes$fy <- 0
+  return(nodes)
+}
+```
+
+The gravity component is equally simple: 
+
+```{r}
+gForce <- function(nodes){
+  nodes$fx <- 0
+  nodes$fy <- nodes$fy + gg
+  return(nodes)
+}
+```
+
+Now, it's pretty obvious what integrate is going to do here, but as I said, this is a sanity check: 
+
+```{r}
+integrateNodes <- function(nodes){
+  for(nn in 1:nrow(nodes)){
+    if(nodes$type[nn] == "S"){
+      nodes$x[nn] <- nodes$x[nn] + nodes$fx[nn]
+      nodes$y[nn] <- nodes$y[nn] + nodes$fy[nn]
+    }
+  }
+  return(nodes)
+}
+```
+
+OK, so let's do a quick animation of this:
+
+```{r g_only, animation.hook="gifski", interval = 0.4, fig.width=18, fig.height=9, message=F, cache=T}
+
+for(tt in 1:20){
+  gn$n <- clearForce(gn$n)
+  gn$n <- gForce(gn$n)
+  gn$n <- integrateNodes(gn$n)
+  
+  
+  plotnet(gn,xlim=range(net$n$x)/100,ylim=range(net$n$y)/100)
+}
+```
+
+That's great - we have gravity. Note that the edges are infinitely elastic in this model!
+
+### fForce
+
+OK, now let's look at the fForce function - this calculates the 'friction' in the system. openConstructor seems to add an `f` object to each mass (each mass is a node)
+
+```
+    // For each mass in the model, apply friction.
+    function _fForce()
+    {
+        MODEL.instance.masses.forEach(function(mass) {
+            // "f"riction (damping) opposes velocity
+            mass.f.add(VECTOR.mul(mass.v, -1 * MODEL.instance.f()));
+        });
+    }
+```
+
+In algorhtim terms, basically for each mass in the mesh add the velocity * the friction component to the f component. 
+
+the `MODEL.instance.f()` handles cases where `fx` and `fy` (in our notation) aren't yet defined I think. Note also that `mass.v` must be set - it'll be zero initially.
+
+
+```{r}
+fForce <- function(nodes){
+  
+  for(nn in 1:nrow(nodes)){
+    if(nodes$type[nn] == "S"){
+      #//mass.f.add(VECTOR.mul(mass.v, -1 * MODEL.instance.f()));
+      nodes$fx[nn] = nodes$fx[nn] + (nodes$vx[nn] * -ff)
+      nodes$fy[nn] = nodes$fy[nn] + (nodes$vy[nn] * -ff)
+    }
+  }
+  
+  return(nodes)
+}
+```
+
+
+### kForce
+
+This is the first time we consider the action of the "springs" in the model: 
+
+```{r}
+kForce <- function(net){
+  
+  edges <- net$e
+  nodes <- net$n
+  #message("Looping through edges")
+  for(ee in 1:nrow(edges)){
+    
+    nf <- match(edges$from[ee],nodes$n) # index of node 'from'
+    nt <- match(edges$to[ee],nodes$n)   # index of node 'to'
+    
+    #// hoo"k"e's law (springiness)
+    #var ds = VECTOR.sub(spr.m2.s, spr.m1.s);
+    # m1 and m2 are the nodes that the edge connects; s is the position vector - so we mean nodes.x and nodes.y
+    dsx <- nodes$x[nt] - nodes$x[nf]
+    dsy <- nodes$y[nt] - nodes$y[nf]
+    
+    #var length = VECTOR.mag(ds); // distance between m1 and m2
+    length <- sqrt((dsx*dsx)+(dsy*dsy))
+    
+    #var dh = VECTOR.hat(ds);     // direction from m1 to m2
+    # length is NOT used in the javascript - 
+    # but it is calculated again *within* the VECTOR.hat function, so we're good doing this: 
+    dhx <- dsx/length
+    dhy <- dsy/length
+    
+    #// hooke's law:  F=kX
+    #// here, positive magnitude = inward (attraction to other mass)
+    #var fMag = MODEL.instance.k() * (length - spr.restlength());
+    edges$fMag[ee] <- kk * (length-restlength)
+    # For our purposes, we record fMag for each edge as this is whether the spring is in tension or compression
+    # Note springiness is bound to oscillate though!
+    
+    # TODO: spr.m1 *references* the mass m1 because of the way javascript works
+    #spr.m1.f.add(VECTOR.mul(dh, fMag));
+    #spr.m2.f.add(VECTOR.mul(dh, -fMag));
+    #message(sprintf("nf = %d, nt = %d",nf,nt))
+    nodes$fx[nf] <- nodes$fx[nf] + (dhx * edges$fMag[ee])
+    nodes$fy[nf] <- nodes$fy[nf] + (dhy * edges$fMag[ee])
+    
+    nodes$fx[nt] <- nodes$fx[nt] - (dhx * edges$fMag[ee])
+    nodes$fy[nt] <- nodes$fy[nt] - (dhy * edges$fMag[ee])
+    
+  }
+  
+  net$n <- nodes
+  net$e <- edges
+  
+  return(net)
+}
+```
+
+
+Not sure if I've got this right - not sure how the + and - multipliers for the from and to will work - but we'll see..
+
+### Integrate function
+
+```{r}
+#// Given the force on each mass, calculate each mass's new acceleration,
+#// velocity and position.
+#function _integrate(dt)
+#{
+
+integrate <- function(nodes,dt){
+  #var state = { dt: dt }
+  #MODEL.instance.masses.forEach(function(mass) {
+  for(nn in 1:nrow(nodes)){
+    if(nodes$type[nn] == "S"){
+        #// F=ma -> a=F/m
+        #// Euler's method - acceleration is force / mass
+        # TODO: consider free and fixed masses...
+        #if (mass.isFreeMass())
+        #{
+            #// The order is important.  We must update each accumulator
+            #// using the value calculated last frame (not this frame).
+            #// Therefore we must add s += v before calculating the new v,
+            #// etc.
+            # position is updated by velocity
+            #mass.s.add(VECTOR.mul(mass.v, this.dt));
+            #Update position: 
+            nodes$x[nn] <- nodes$x[nn] + (nodes$vx[nn] * dt)
+            nodes$y[nn] <- nodes$y[nn] + (nodes$vy[nn] * dt)
+            
+            # velocity is updated by acceleration
+            #mass.v.add(VECTOR.mul(mass.a, this.dt));
+            #Update velocity: 
+            nodes$vx[nn] <- nodes$vx[nn] + (nodes$ax[nn] * dt)
+            nodes$vy[nn] <- nodes$vy[nn] + (nodes$ay[nn] * dt)
+            
+            # acceleration is updated via forces
+            #mass.a = VECTOR.div(mass.f, mass.m());//m is 1(kg)!
+            #Update acceleration
+            nodes$ax[nn] <- nodes$fx[nn] / mm
+            nodes$ay[nn] <- nodes$fy[nn] / mm
+            
+        #}
+    #}, state);
+    }
+  }
+  return(nodes)
+}
+```
+
+
+
+```{r gfk, animation.hook="gifski", interval = 0.04, fig.width=12, fig.height=9, message=T, cache=F}
+gn <- gnstart
+
+#gn$n$y <- gn$n$y + 2
+
+for(tt in 1:100){
+  gn$n <- clearForce(gn$n)
+  gn$n <- gForce(gn$n)
+  gn$n <- fForce(gn$n)
+  #message("entering kforce")
+  gn <- kForce(gn)
+  gn$n <- integrate(gn$n,dt)
+  
+  
+  plotnet(gn,xlim=range(net$n$x)/100,ylim=c(-1,2))
+  
+  
+  nodes <- gn$n
+  edges <- gn$e
+  for(ee in 1:nrow(gn$e)){
+    if(abs(gn$e$fMag[ee])>0.000000000001){
+      #message(sprintf("gn$e$fMag[%d] = %0.5f",ee,gn$e$fMag[ee]))
+      if(gn$e$fMag[ee]>0){
+        n0 <- nodes[nodes$n == edges$from[ee],]
+        n1 <- nodes[nodes$n == edges$to[ee],]
+        segments(x0=n0$x,x1=n1$x,y0=n0$y,y1=n1$y,lwd = 3,col="red")  
+      }else{
+        n0 <- nodes[nodes$n == edges$from[ee],]
+        n1 <- nodes[nodes$n == edges$to[ee],]
+        segments(x0=n0$x,x1=n1$x,y0=n0$y,y1=n1$y,lwd = 3,col="blue")  
+      }
+    }
+      
+  }
+}
+```
+
+Let's see if we can plot the forces on the edges now: 
+
+```{r}
+
+  plotnet(gn,xlim=range(net$n$x)/100,ylim=range(net$n$y)/100)
+  nodes <- gn$n
+  edges <- gn$e
+  for(ee in 1:nrow(gn$e)){
+    if(abs(gn$e$fMag[ee])>0.000000000001){
+      message(sprintf("gn$e$fMag[%d] = %0.5f",ee,gn$e$fMag[ee]))
+      if(gn$e$fMag[ee]>0){
+        n0 <- nodes[nodes$n == edges$from[ee],]
+        n1 <- nodes[nodes$n == edges$to[ee],]
+        segments(x0=n0$x,x1=n1$x,y0=n0$y,y1=n1$y,lwd = 3,col="red")  
+      }else{
+        n0 <- nodes[nodes$n == edges$from[ee],]
+        n1 <- nodes[nodes$n == edges$to[ee],]
+        segments(x0=n0$x,x1=n1$x,y0=n0$y,y1=n1$y,lwd = 3,col="blue")  
+      }
+    }
+      
+  }
+    
+
+```
+
+
+# Debuging
+
+IDEA! convert the nodes and edges to javascript objects - we can paste them into sodaracer and test what the physics does there: 
+
+```
+
+                    {"s":{"x":1.750499570147691, "y":0.7554135719641994}, \
+                    "v":{"x":0.010396670975938842, "y":-0.018675110524989408}, \
+                    "a":{"x":-0.10832455506214488, "y":0.02183982923269993}, \
+                    "f":{"x":-0.10832455506214488, "y":0.02183982923269993}}, \
+```                    
+
+
+```{r}
+gn <- gnstart
+sink(file = "jsnet.txt")
+gn$n$i <- 0
+for(nn in 1:nrow(gn$n)){
+  gn$n$i[nn]<-nn-1 # make the javascript index
+  cat(sprintf("\t\t\t{\"s\":{\"x\":%f, \"y\":%f}, \\\n",gn$n$x[nn],gn$n$y[nn]))
+  cat(sprintf( "\t\t\t\"v\":{\"x\":0.0, \"y\":0.0}, \\\n"))
+  cat(sprintf( "\t\t\t\"a\":{\"x\":0.0, \"y\":0.0}, \\\n"))
+  if(nn < nrow(gn$n))
+    cat(sprintf( "\t\t\t\"f\":{\"x\":0.0, \"y\":0.0}}, \\\n"))
+  else
+    cat(sprintf( "\t\t\t\"f\":{\"x\":0.0, \"y\":0.0}}], \\\n"))
+}
+
+cat(sprintf( "\t\t\"springs\":[ \\\n"))
+
+for(ee in 1:nrow(gn$e)){
+  ni <- gn$n[gn$n$n == gn$e$from[ee],]
+  n1 = ni$i[1]
+  ni <- gn$n[gn$n$n == gn$e$to[ee],]
+  n2 = ni$i[1]
+  if(ee<nrow(gn$e))
+    cat(sprintf("\t\t\t{\"m1\":%d, \"m2\":%d, \"restlength\":%f, \"amplitude\":0, \"phase\":0}, \\\n",n1,n2,restlength))
+  else
+    cat(sprintf("\t\t\t{\"m1\":%d, \"m2\":%d, \"restlength\":%f, \"amplitude\":0, \"phase\":0}]}');\n",n1,n2,restlength))
+  
+}
+
+
+sink()
+```
+
+
+# Testing kforce function: 
+
+ok, I've managed to get inputs and outputs printed to console in the javascript, so I can test each line in kforce. 
+
+```{r}
+td <- read.csv("kforcedata.txt")
+colnames(td)<- c("ii","m2sx","m2sy","m1sx","m1sy","dsx","dsy","f1prex","f1prey","f2prex","f2prey","f1x","f1y","f2x","f2y")
+
+rl = 0.2
+mk = 1.25
+
+
+for(rr in 1:nrow(td)){
+  # Test the vector subtraction
+  subx <- td$m2sx[rr]-td$m1sx[rr]
+  if(abs(subx- td$dsx[rr])>0.01)
+    message(sprintf("Row %d: ERROR in subx calc",rr))
+  
+  suby <- td$m2sy[rr]-td$m1sy[rr]
+  if(abs(suby- td$dsy[rr])>0.01)
+    message(sprintf("Row %d: ERROR in suby calc",rr))
+  
+  length <- sqrt((td$dsx[rr]*td$dsx[rr])+(td$dsy[rr]*td$dsy[rr]))
+  
+  #//var dh = VECTOR.hat(ds);     // direction from m1 to m2
+  dhx <- td$dsx[rr]/length
+  dhy <- td$dsy[rr]/length
+    
+  #// hooke's law:  F=kX
+  #// here, positive magnitude = inward (attraction to other mass)
+  #var fMag = MODEL.instance.k() * (length - spr.restlength());
+  fMag <- mk * (length-rl)
+  
+  #//console.log(""+ii+": ds= "+ds.get()+ "; len = "+length+"; dh = "+dh.get());
+  
+  #//console.log("\t\tpre-mul, m1 = "+spr.m1.f.get() );
+  #var f1old = spr.m1.f.get();
+  #var f2old = spr.m2.f.get();
+  
+  #spr.m1.f.add(VECTOR.mul(dh, fMag));
+  #spr.m2.f.add(VECTOR.mul(dh, -fMag));
+  m1x <- td$f1prex[rr] + (dhx * fMag)
+  m1y <- td$f1prey[rr] + (dhy * fMag)
+  m2x <- td$f2prex[rr] + (dhx * fMag)
+  m2y <- td$f2prey[rr] + (dhy * fMag)
+  
+  if(abs(m1x- td$f1x[rr])>0.000001)
+    message(sprintf("Row %d: ERROR in m1x calc",rr))
+  
+  if(abs(m1y- td$f1y[rr])>0.000001)
+    message(sprintf("Row %d: ERROR in m1y calc",rr))
+  
+  if(abs(m2x- td$f2x[rr])>0.000001)
+    message(sprintf("Row %d: ERROR in m2x calc",rr))
+  
+  if(abs(m2y- td$f2y[rr])>0.000001)
+    #message(sprintf("Row %d: ERROR in m2y calc",rr))
+    message("m2y error")
+  
+}
+
+```
+
+Let's plot the changes in values here...
+
+```{r}
+
+
+ylim <- range(c(td$f1x,td$f1y))
+
+for(nn in 0:12){
+  nd <- td[td$ii == nn,]
+  
+  tt <- seq(1:nrow(nd))
+  
+  if(!nn){
+    plot(x=tt,y=nd$f1y,type="l",ylim=ylim)
+  }
+  else{
+    lines(x=tt,y=nd$f1y)
+  }
+  
+  lines(x=tt,y=nd$f2y,col="red")
+  
+}
+```
+
+OK, so these values are very small but there doesn't appear to be an error in the R code at the moment
+
+# testing the integrate function
+
+NB: k = 1.25 in this dataset
+
+```{r}
+
+id <- read.csv("integratedata.txt")
+colnames(id)<- c("ii","dt","oldsx","oldsy","oldvx","oldvy","oldax","olday","fx","fy","mass","sx","sy","vx","vy","ax","ay")
+
+for(rr in 1:nrow(id)){
+  
+  sx <- id$oldsx[rr] + (id$oldvx[rr] * id$dt[rr])
+  if(abs(sx-id$sx[rr])>0.0000001){
+    message("ow")
+  }
+  
+  sy <- id$oldsy[rr] + (id$oldvy[rr] * id$dt[rr])
+  if(abs(sy-id$sy[rr])>0.0000001){
+    message("ow")
+  }
+  
+  vx <- id$oldvx[rr] + (id$oldax[rr] * id$dt[rr])
+  if(abs(vx-id$vx[rr])>0.0000001){
+    message("ow")
+  }
+  
+  vy <- id$oldvy[rr] + (id$olday[rr] * id$dt[rr])
+  if(abs(vy-id$vy[rr])>0.0000001){
+    message("ow")
+  }
+  
+  ax <- id$fx[rr] / id$mass[rr]
+  if(abs(ax-id$ax[rr])>0.0000001){
+    message("ow")
+  }
+  
+  ay <- id$fy[rr] / id$mass[rr]
+  if(abs(ay-id$ay[rr])>0.0000001){
+    message("ow")
+  }
+  
+}
+message("finished")
+```
+
+
+

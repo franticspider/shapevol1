@@ -1,0 +1,237 @@
+---
+title: "Forces on a bridge"
+author: "Simon Hickinbotham"
+date: "29/03/2021"
+output:
+  html_document: default
+  ioslides_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r obst1, fig.height=4, fig.width=8, message=FALSE, animation.hook="gifski", cache=T, include=FALSE, interval=0.2}
+source("maycode.R")
+
+nxl <- c(0,500)
+net <- makehexnet(xlim=nxl)
+net <- setnodetype(net,50,-5,100,5)
+net <- setnodetype(net,410,-5,460,5)
+##
+
+
+inhib=data.frame(x0=190,y0=-10,x1=310,y1=150)
+
+#net <- setnodetype(net,inhib$x0,inhib$y0,inhib$x1,inhib$y1,"X")
+net <- setnodetype(net,x0=inhib$x0,y0=inhib$y0,x1=inhib$x1,y1=inhib$y1,"X")
+
+xnet <- net
+
+stim <- data.frame(x=250,y=175)
+
+#plotnet(xnet,stim,inhib,xlim = nxl)
+
+nl <- list()
+nl[[1]]<-net
+
+#nl = rungrowth(nl, stim = stim,inhib=inhib, nsteps = 5,xlim=nxl,ylim=c(0,200))
+
+saveRDS(nl,file="ntest1.RDS")
+
+```
+
+
+```{r gfk, echo=FALSE, message=FALSE, animation.hook="gifski", cache=T, interval=0.2}
+
+
+source("maycode.R")
+net <- xnet
+sf <- 100 # scale factor
+
+net$n$x = net$n$x/sf
+net$n$y = net$n$y/sf
+
+sinhib <- inhib/sf
+
+sstim <- stim/sf
+
+plotnet(net,sstim,sinhib,xlim = range(net$n$x),ylim=range(net$n$y))
+
+nl <- list()
+nl[[1]]<-net
+
+nl = rungrowth(nl, stim = sstim,inhib=sinhib,odist=0.2, nsteps = 25,xlim=range(net$n$x),ylim=range(net$n$y))
+
+source("sodaphysics.R")
+subnet <- nl[[length(nl)]]
+net<- nl[[length(nl)]]
+
+
+subnet <- setnodetype(subnet,0.5,-.05,1.1,0.05)
+subnet <- setnodetype(subnet,3.9,-0.05,4.6,0.05)
+for(ff in 1:1)
+plotnet(subnet,sstim,sinhib,xlim = range(net$n$x),ylim=range(net$n$y))
+
+
+subnet$n = subnet$n[subnet$n$type=="S" | subnet$n$type=="F" ,]
+subnet$e = NULL
+sei = 1
+for(ee in 1:nrow(net$e)){
+  if(net$e$from[ee] %in% subnet$n$n & net$e$to[ee] %in% subnet$n$n){
+    if(sei == 1)
+      subnet$e <- net$e[ee,]
+    else
+      subnet$e = rbind(subnet$e, net$e[ee,])
+    sei = sei + 1
+  }
+}
+
+for(ff in 1:1)
+plotnet(subnet,xlim = range(net$n$x),ylim=range(net$n$y))
+
+gn <- subnet
+
+gn$n$fx <- 0
+gn$n$fy <- 0
+
+gn$n$vx <- 0
+gn$n$vy <- 0
+
+gn$n$ax <- 0
+gn$n$ay <- 0
+
+gn$e$fMag <- 0
+
+#gn$n$y <- gn$n$y + 2
+ff <- 0.137
+kk <- 6.25
+dt <-  0.001666667
+ni <- 300
+
+restlength <- VECTOR.len(subnet$n,subnet$e$from[1],subnet$e$to[1])
+
+gnl <- list()
+
+for(tt in 1:50){
+  
+  
+  
+  
+  #for(dd in 1:300){
+  #  gn$n <- clearForce(gn$n)
+  #  gn$n <- gForce(gn$n)
+  #  gn$n <- fForce(gn$n)#,ff = 0.8)
+  #  gn <- kForce(gn)#,kk=20)# Do higher values of kk make the structure 'stiffer'?
+  #  gn$n <- integrate(gn$n,dt)
+  #}
+  gn <- updateModel(gn,ff,kk,dt,ni)
+  gnl[[tt]] <- gn
+
+  plotnet(gn,xlim = range(net$n$x),ylim=range(net$n$y))
+
+  nodes <- gn$n
+  edges <- gn$e
+  for(ee in 1:nrow(gn$e)){
+    if(abs(gn$e$fMag[ee])>0.000000000001){
+      #message(sprintf("gn$e$fMag[%d] = %0.5f",ee,gn$e$fMag[ee]))
+      if(gn$e$fMag[ee]>0){
+        n0 <- nodes[nodes$n == edges$from[ee],]
+        n1 <- nodes[nodes$n == edges$to[ee],]
+        segments(x0=n0$x,x1=n1$x,y0=n0$y,y1=n1$y,lwd = 3,col="red")  
+      }else{
+        n0 <- nodes[nodes$n == edges$from[ee],]
+        n1 <- nodes[nodes$n == edges$to[ee],]
+        segments(x0=n0$x,x1=n1$x,y0=n0$y,y1=n1$y,lwd = 3,col="blue")  
+      }
+    }
+      
+  }
+}
+```
+
+ok, Let's see what the forces are doing for the first ten or so frames - are they any use? 
+
+
+```{r gfkf, echo=FALSE, message=FALSE, animation.hook="gifski", cache=T, interval=0.2}
+gn1 <- gnl[[1]]
+
+
+for(gg in 1:length(gnl)){
+
+  gn <- gnl[[gg]]
+  
+  #plotnet(gn,xlim = range(net$n$x),ylim=range(net$n$y))
+  
+  plot(NA,xlim = range(net$n$x),ylim=range(net$n$y))
+  
+  for(nn in 1:nrow(gn$n)){
+    x1 <- gn1$n$x[nn] + (10*gn$n$fx[nn])
+    y1 <- gn1$n$y[nn] + (10*gn$n$fy[nn])
+    segments(x0=gn1$n$x[nn],y0=gn1$n$y[nn],x1=x1,y1=y1,lwd=4)
+    
+    x1 <- gn1$n$x[nn] + (10*gn$n$vx[nn])
+    y1 <- gn1$n$y[nn] + (10*gn$n$vy[nn])
+    segments(x0=gn1$n$x[nn],y0=gn1$n$y[nn],x1=x1,y1=y1,col="red")
+    
+    x1 <- gn1$n$x[nn] + (10*gn$n$ax[nn])
+    y1 <- gn1$n$y[nn] + (10*gn$n$ay[nn])
+    segments(x0=gn1$n$x[nn],y0=gn1$n$y[nn],x1=x1,y1=y1,col="green")
+    
+    
+  }
+}
+
+
+```
+
+
+# Searching over ff and kk
+
+Now we need to find a way of translating these forces into growth responses. A way into this is to look at how the model responds with different values of ff and kk - we want to see if there's a way of having a *fixed* shape, but one which measures *local* forces across the structure via this method. 
+
+To do this, we'll need to put the code above into a function that we can call repeatedly, turning the plot on and off as we go. So let's do that in the R file and call it here: 
+
+
+```{r ksens, eval=T, include=T}
+source("sodaphysics.R")
+ff <- 0.137
+#kk <- 6.25
+dt <-  0.001666667
+ni <- 300
+for(kk in seq(6,7,1)){
+  gn <- subnet
+  
+  gn$n$fx <- 0
+  gn$n$fy <- 0
+  gn$n$vx <- 0
+  gn$n$vy <- 0
+  gn$n$ax <- 0
+  gn$n$ay <- 0
+  gn$e$fMag <- 0
+  
+  for(tt in 1:20){
+    gn<-updateModel(gn,ff,kk,dt,ni)
+  }
+
+  plotnet(gn,xlim = range(net$n$x),ylim=range(net$n$y))
+  plotForces(gn)
+}
+
+
+
+```
+
+```{r}
+
+  plotnet(gn,xlim = range(net$n$x),ylim=range(net$n$y))
+plotForces(gn)
+saveRDS(gn,file="gndbg.RDS")
+```
+
+
+
+
+
+

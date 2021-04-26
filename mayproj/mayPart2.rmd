@@ -1,0 +1,162 @@
+---
+title: "Version2"
+author: "Simon Hickinbotham"
+date: "16/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Summary
+
+We plan to:
+
+- move to a network built from equilateral triangles
+- accommodate multiple foundations and stimuli in a single network
+- emphasise processing on a per-node basis
+
+On this basis, I think it's time to start a new workbook and implement these ideas. 
+
+# Setting up the network
+
+## Node types
+
+- "U": undifferentiated - all nodes start like this
+- "F": foundation - build from here - these are set manually after initialising
+- "S": a node near to or linked to a stimulus - which can be a set point or another network
+- "X": an undifferentiated node that is located in an inhibition region
+- "C": a constructor node - basis of converting to solid structure
+
+## Regular hexagonal network version
+
+Adding nodes on a grid is pretty straghtforward. Here we'll create a regular square lattice with cross-braces. We commence with the nodes: 
+```{r}
+source("maycode.R")
+```
+
+
+Now we can generate a regular network within and x,y range - the process will be similar for 3D - we'd just have to add a z dimension. 
+
+```{r fig.height=6, fig.width=6, cache=TRUE}
+source("maycode.R")
+
+# constants
+iel = 50            # ideal edge length - not used yet
+xlim = c(-100,100)  # x range
+ylim = c(0,200)     # y range
+ostep = 20
+
+net <- makehexnet(xlim,ylim,ostep)
+
+# Set the foundation nodes: 
+#net$n$type[net$n$n>=5 & net$n$n <=7]<-"F"
+net <- setnodetype(net,-25,-5,25,5,"F")
+ 
+# Store the network's initial state:
+innet <- net
+
+# Here's a stimulus: 
+stim <- data.frame(x=-5,y=145)
+
+
+plotnet(net,stim)
+```
+
+
+
+```{r include=FALSE}
+require(gifski)
+```
+
+
+OK that's a good start - we need to propagate the connectivity between the foundation and the stimulus 
+
+```{r linkit2, animation.hook="gifski", interval = 0.2, fig.width=6, fig.height=6, message=F, cache=T}
+
+nl <- list()
+nl[[1]]<-innet
+
+nl = rungrowth(nl, stim = stim,inhib=NULL, nsteps = 15,xlim=xlim,ylim=ylim)
+
+```
+
+
+
+```{r linkit3, echo=FALSE, fig.height=6, fig.width=6, message=FALSE, cache=T, animation.hook="gifski", interval=0.2}
+stim2 <- stim
+stim2$x <- -90
+
+nl <- list()
+nl[[1]]<-net
+
+nl = rungrowth(nl, stim = stim2,inhib=NULL, nsteps = 20,xlim=xlim,ylim=ylim)
+
+#net = rungrowth(net = innet, stim = stim2, nsteps = 20, xlim=xlim,ylim=ylim)
+```
+```{r linkit, echo=FALSE, fig.height=6, fig.width=6, message=FALSE, cache=F, animation.hook="gifski", interval=0.2}
+stim2 <- stim
+stim2$x <- 90
+
+nl <- list()
+nl[[1]]<-innet
+
+nl = rungrowth(nl, stim = stim2,inhib=NULL, nsteps = 20,xlim=xlim,ylim=ylim)
+```
+
+# Obstacles 
+
+OK, now to start to hit the bridge challenge, we need to specify the void under the bridge. We'll do this via a list of rectangles - this will make it easier to code for in this proof-of-concept stage. I've updated the `plotnet` function to draw obstacles in dark grey behind the network. The next code chunk creates a wider network with a void region, and plots it: 
+
+```{r obst1, cache = T, echo=FALSE, fig.height=4, fig.width=8, message=FALSE, animation.hook="gifski", interval=0.2}
+nxl <- c(0,500)
+net <- makehexnet(xlim=nxl)
+net <- setnodetype(net,75,-5,125,5)
+##
+
+
+inhib=data.frame(x0=190,y0=-10,x1=310,y1=150)
+
+#net <- setnodetype(net,inhib$x0,inhib$y0,inhib$x1,inhib$y1,"X")
+net <- setnodetype(net,x0=inhib$x0,y0=inhib$y0,x1=inhib$x1,y1=inhib$y1,"X")
+
+xnet <- net
+
+stim$x<-410
+plotnet(xnet,stim,inhib,xlim = nxl)
+
+nl <- list()
+nl[[1]]<-net
+
+nl = rungrowth(nl, stim = stim,inhib=inhib, nsteps = 40,xlim=nxl,ylim=ylim)
+
+saveRDS(nl,file="ntest1.RDS")
+
+```
+
+
+# Calculating forces - sodaracer version
+
+Let's look at how sodaracer-type physics engines sorts out forces in their meshes - perhaps not an obvious choice but may provide a way 'in' to the system. 
+
+A 'model' in soda racer consists of a bunch of masses (nodes), connected by springs (edges) - very similar to the model we are using above. 
+
+Each mass has parameters {s,v(velocity),a(acceleration),f (force)}, each of which has an xy coordinate. 
+
+Each spring has 2 node names, restlength, amplitude, phase
+
+Each iteration updates the masses. 6 steps: clear; gForce(gravity); fForce; kForce; integrate; collide. 
+
+- clearForces sets the f vector to zero - so the starting f values in the model are immediately deleted
+- gForce simply adds a fixed unit to the y-dim of 'f'
+- fForce - calculates friction (opposes velocity) - a vector multiplication of the f and v vectors
+- kForce - apply springwise force to both masses in the spring
+- integrate. F = ma, so a = F/m. 
+- collide checks if a mass has hit a wall - we don't need this!
+
+
+It looks like this approach uses Euler's method to update the forces over small delta-time. 
+
+
+

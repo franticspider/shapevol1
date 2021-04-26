@@ -65,3 +65,6 @@ mayproj/**/*.rdb
 mayproj/**/*.rdx
 mayproj/**/__packages
 mayproj/**/*.gif
+**/*.html
+mayproj/**/*.pdf
+**/*.pptx
